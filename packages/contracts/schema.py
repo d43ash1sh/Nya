@@ -44,6 +44,11 @@ class AIAnswerStatus(str, Enum):
     VALIDATION_FAILED = "validation_failed"
 
 
+class SortOption(str, Enum):
+    NEWEST = "newest"
+    RELEVANCE = "relevance"
+
+
 class CitationItem(BaseModel):
     citation_index: int = Field(description="1-based index corresponding to [1], [2], etc.")
     document_id: str
@@ -76,6 +81,10 @@ class SearchResultItem(BaseModel):
     snippet: str
     language: str
     published_date: Optional[str] = None
+    published_at: Optional[str] = None
+    updated_at: Optional[str] = None
+    crawled_at: Optional[str] = None
+    is_news: bool = False
     score: float
     source_name: str
     source_domain: str
@@ -89,6 +98,7 @@ class SearchRequest(BaseModel):
     language: LanguageType = LanguageType.ALL
     safe_search: SafeSearchLevel = SafeSearchLevel.MODERATE
     date_filter: DateFilter = DateFilter.ALL
+    sort: SortOption = SortOption.NEWEST
     enable_ai: bool = True
 
 
@@ -102,6 +112,10 @@ class SearchResponse(BaseModel):
     page: int
     page_size: int
     latency_ms: float
+    sort: SortOption = SortOption.NEWEST
+    is_time_sensitive_query: bool = False
+    has_fresh_results: bool = True
+    freshness_notice: Optional[str] = None
     results: List[SearchResultItem] = Field(default_factory=list)
     ai_answer: Optional[AIAnswer] = None
     related_queries: List[str] = Field(default_factory=list)

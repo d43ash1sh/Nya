@@ -86,14 +86,16 @@ class WikipediaProvider(BaseSearchProvider):
                         canonical_url = f"https://{lang}.wikipedia.org/wiki/{quote(title.replace(' ', '_'))}"
                         content_hash = hashlib.sha256(f"{title}:{clean_snippet}".encode("utf-8")).hexdigest()
 
-                        # Extract genuine revision timestamp if present in metadata
+                        # Wikipedia returns revision timestamps of edits, NOT original news publication dates
                         raw_ts = item.get("timestamp")
-                        pub_date = None
+                        rev_date = None
                         if raw_ts:
                             try:
-                                pub_date = datetime.fromisoformat(raw_ts.replace("Z", "+00:00"))
+                                rev_date = datetime.fromisoformat(raw_ts.replace("Z", "+00:00"))
                             except Exception:
-                                pub_date = None
+                                rev_date = None
+
+                        crawled_time = datetime.now(timezone.utc)
 
                         results.append({
                             "id": f"wiki_{lang}_{page_id}",
@@ -104,7 +106,11 @@ class WikipediaProvider(BaseSearchProvider):
                             "snippet": clean_snippet,
                             "language": lang,
                             "content_hash": content_hash,
-                            "published_date": pub_date,
+                            "published_date": None,
+                            "published_at": None,
+                            "updated_at": rev_date,
+                            "crawled_at": crawled_time,
+                            "is_news": False,
                             "source_name": "অসমীয়া ৱিকিপিডিয়া" if lang == "as" else "Wikipedia (English)",
                             "source_domain": f"{lang}.wikipedia.org",
                             "is_authoritative": False,

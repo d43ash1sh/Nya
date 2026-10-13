@@ -12,7 +12,7 @@ import hashlib
 import uuid
 import logging
 from datetime import datetime, timezone
-from typing import Optional, List
+from typing import Optional, List, Any
 from fastapi import APIRouter, Depends, Query, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
@@ -35,6 +35,7 @@ from packages.contracts.schema import (
     LanguageType,
     DateFilter,
     SafeSearchLevel,
+    SortOption,
 )
 from config import settings
 
@@ -80,6 +81,7 @@ async def search_get(
     language: LanguageType = Query(LanguageType.ALL, description="Language filter"),
     safe_search: SafeSearchLevel = Query(SafeSearchLevel.MODERATE, description="Safe Search level"),
     date_filter: DateFilter = Query(DateFilter.ALL, description="Publication date filter"),
+    sort: SortOption = Query(SortOption.NEWEST, description="Sort order: newest (default) or relevance"),
     enable_ai: bool = Query(True, description="Generate grounded AI answer"),
     session: AsyncSession = Depends(get_db_session),
 ):
@@ -91,6 +93,7 @@ async def search_get(
         language=language,
         safe_search=safe_search,
         date_filter=date_filter,
+        sort=sort,
         enable_ai=enable_ai,
         session=session,
     )
@@ -109,9 +112,18 @@ async def search_post(
         language=body.language,
         safe_search=body.safe_search,
         date_filter=body.date_filter,
+        sort=body.sort,
         enable_ai=body.enable_ai,
         session=session,
     )
+
+
+def _format_timestamp(val: Any) -> Optional[str]:
+    if not val:
+        return None
+    if hasattr(val, "isoformat"):
+        return val.isoformat()
+    return str(val)
 
 
 async def _execute_search(
@@ -121,12 +133,13 @@ async def _execute_search(
     language: LanguageType,
     safe_search: SafeSearchLevel,
     date_filter: DateFilter,
+    sort: SortOption,
     enable_ai: bool,
     session: AsyncSession,
 ) -> SearchResponse:
     start_time = time.time()
 
-    # 1. Linguistic processing: Normalization, transliteration, script detection
+    # 1. Linguistic processing: Normalization, transliteration, script detection, temporal intent
     processed = query_processor.process(query)
 
     # 2. Retrieval & Ranking
@@ -135,6 +148,7 @@ async def _execute_search(
         processed_query=processed,
         language_filter=language.value,
         date_filter=date_filter.value,
+        sort=sort.value,
         page=page,
         page_size=page_size,
     )
@@ -167,7 +181,33 @@ async def _execute_search(
                 "Try searching in native Assamese script or broader keywords."
             )
 
-    # 5. Formulate related query suggestions
+    # 5. Freshness assessment: for time-sensitive or news queries, verify if genuinely fresh results exist
+    has_fresh_results = True
+    freshness_notice = None
+    if processed.is_time_sensitive or processed.is_news_intent:
+        now = datetime.now(timezone.utc)
+        recent_threshold_days = 90
+        has_recent = False
+        for r in results:
+            raw_pub = r.get("published_at") or r.get("published_date")
+            if raw_pub:
+                try:
+                    dt = datetime.fromisoformat(str(raw_pub).replace("Z", "+00:00"))
+                    if dt.tzinfo is None:
+                        dt = dt.replace(tzinfo=timezone.utc)
+                    if (now - dt).days <= recent_threshold_days or r.get("is_news"):
+                        has_recent = True
+                        break
+                except Exception:
+                    pass
+        if not has_recent and total_matches > 0:
+            has_fresh_results = False
+            freshness_notice = (
+                "No recent news found from verified sources for this topic. "
+                "Showing relevant background information."
+            )
+
+    # 6. Formulate related query suggestions
     related_queries = []
     if processed.transliteration_suggestion:
         related_queries.append(processed.transliteration_suggestion)
@@ -187,7 +227,11 @@ async def _execute_search(
             display_url=r.get("canonical_url") or r["url"],
             snippet=r["snippet"],
             language=r["language"],
-            published_date=r["published_date"].isoformat() if hasattr(r.get("published_date"), "isoformat") else (str(r.get("published_date")) if r.get("published_date") else None),
+            published_date=_format_timestamp(r.get("published_at") or r.get("published_date")),
+            published_at=_format_timestamp(r.get("published_at") or r.get("published_date")),
+            updated_at=_format_timestamp(r.get("updated_at")),
+            crawled_at=_format_timestamp(r.get("crawled_at")),
+            is_news=bool(r.get("is_news", False)),
             score=r["score"],
             source_name=r.get("source_name") or r.get("source_domain") or "Web",
             source_domain=r.get("source_domain") or "",
@@ -198,18 +242,26 @@ async def _execute_search(
 
     total_latency = round((time.time() - start_time) * 1000, 2)
 
+    detected_lang_enum = (
+        LanguageType(processed.detected_language)
+        if processed.detected_language in [e.value for e in LanguageType]
+        else LanguageType.ALL
+    )
+
     return SearchResponse(
         query=query,
         normalized_query=processed.normalized_query,
-        detected_language=LanguageType(processed.detected_language)
-        if processed.detected_language in [e.value for e in LanguageType]
-        else LanguageType.ALL,
+        detected_language=detected_lang_enum,
         transliteration_suggestion=processed.transliteration_suggestion,
         spelling_suggestion=processed.spelling_suggestion,
         total_results=total_matches,
         page=page,
         page_size=page_size,
         latency_ms=total_latency,
+        sort=sort,
+        is_time_sensitive_query=processed.is_time_sensitive,
+        has_fresh_results=has_fresh_results,
+        freshness_notice=freshness_notice,
         results=result_items,
         ai_answer=ai_answer,
         related_queries=related_queries[:4],

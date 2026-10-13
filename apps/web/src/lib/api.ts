@@ -9,6 +9,7 @@ import {
   LanguageType,
   DateFilter,
   SafeSearchLevel,
+  SortOption,
 } from "@/types/contracts";
 
 export const getApiBaseUrl = (): string => {
@@ -32,6 +33,7 @@ export async function fetchSearch(params: {
   language?: LanguageType;
   dateFilter?: DateFilter;
   safeSearch?: SafeSearchLevel;
+  sort?: SortOption;
   enableAi?: boolean;
   signal?: AbortSignal;
 }): Promise<SearchResponse> {
@@ -42,6 +44,7 @@ export async function fetchSearch(params: {
   if (params.language) queryParams.set("language", params.language);
   if (params.dateFilter) queryParams.set("date_filter", params.dateFilter);
   if (params.safeSearch) queryParams.set("safe_search", params.safeSearch);
+  queryParams.set("sort", params.sort || "newest");
   if (params.enableAi !== undefined) queryParams.set("enable_ai", params.enableAi.toString());
 
   const response = await fetch(`${API_BASE_URL}/api/v1/search?${queryParams.toString()}`, {

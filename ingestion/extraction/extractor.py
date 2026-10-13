@@ -8,7 +8,7 @@ from bs4 import BeautifulSoup
 import re
 import html
 from typing import Dict, Any, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 class ContentExtractor:
@@ -48,29 +48,52 @@ class ContentExtractor:
         snippet_raw = meta_desc if meta_desc else clean_body[:240] + ("..." if len(clean_body) > 240 else "")
         clean_snippet = html.unescape(snippet_raw).strip()
 
-        # 7. Extract genuine publication date from meta tags if present
-        published_date: Optional[datetime] = None
-        date_meta = soup.find(
+        # 7. Extract genuine publication date and update date from meta tags if present
+        published_at: Optional[datetime] = None
+        updated_at: Optional[datetime] = None
+        crawled_at: datetime = datetime.now(timezone.utc) if "timezone" in globals() else datetime.utcnow()
+
+        pub_meta = soup.find(
             "meta",
             attrs={
                 "property": re.compile(r"article:published_time|og:published_time", re.I)
             },
         ) or soup.find(
             "meta",
-            attrs={"name": re.compile(r"^(pubdate|publishdate|date|dc\.date)$", re.I)},
+            attrs={"name": re.compile(r"^(pubdate|publishdate|date|dc\.date|datePublished)$", re.I)},
         )
 
-        if date_meta and date_meta.get("content"):
-            raw_date = date_meta["content"].strip()
+        if pub_meta and pub_meta.get("content"):
+            raw_date = pub_meta["content"].strip()
             try:
-                published_date = datetime.fromisoformat(raw_date.replace("Z", "+00:00"))
+                published_at = datetime.fromisoformat(raw_date.replace("Z", "+00:00"))
             except Exception:
-                published_date = None
+                published_at = None
+
+        upd_meta = soup.find(
+            "meta",
+            attrs={
+                "property": re.compile(r"article:modified_time|og:updated_time", re.I)
+            },
+        ) or soup.find(
+            "meta",
+            attrs={"name": re.compile(r"^(last-modified|datemodified|revision_date)$", re.I)},
+        )
+
+        if upd_meta and upd_meta.get("content"):
+            raw_upd = upd_meta["content"].strip()
+            try:
+                updated_at = datetime.fromisoformat(raw_upd.replace("Z", "+00:00"))
+            except Exception:
+                updated_at = None
 
         return {
             "title": clean_title[:500],
             "body_text": clean_body,
             "snippet": clean_snippet[:400],
             "canonical_url": canonical_url,
-            "published_date": published_date,
+            "published_at": published_at,
+            "updated_at": updated_at,
+            "crawled_at": crawled_at,
+            "published_date": published_at,
         }

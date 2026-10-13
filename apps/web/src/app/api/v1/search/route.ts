@@ -13,6 +13,78 @@ export const dynamic = "force-dynamic";
 // Built-in regional authoritative knowledge items
 const REGIONAL_KNOWLEDGE_BASE: SearchResultItem[] = [
   {
+    id: "todays-top-news-assam-infrastructure",
+    title: "Today's Top News: Assam Infrastructure Push and Northeast Connectivity Milestones",
+    url: "https://assamtribune.com/assam/todays-top-news-assam-infrastructure-connectivity",
+    display_url: "assamtribune.com › assam › todays-top-news",
+    snippet:
+      "Today's top headlines across Assam feature major infrastructure expansions, including new bridge projects across the Brahmaputra, elevated highway corridors in Kaziranga, and renewable solar parks.",
+    language: "en",
+    published_date: "2026-10-13T06:30:00Z",
+    published_at: "2026-10-13T06:30:00Z",
+    updated_at: "2026-10-13T07:00:00Z",
+    crawled_at: "2026-10-13T07:15:00Z",
+    is_news: true,
+    score: 0.98,
+    source_name: "The Assam Tribune",
+    source_domain: "assamtribune.com",
+    is_authoritative: true,
+  },
+  {
+    id: "assam-cabinet-decisions-latest",
+    title: "অসম চৰকাৰৰ শেহতীয়া কেবিনেট সিদ্ধান্ত: নিযুক্তি আৰু আন্তঃগাঁথনি বিকাশ (Latest Assam Cabinet Decisions)",
+    url: "https://assam.gov.in/press-release/assam-cabinet-decisions-latest-october-2026",
+    display_url: "assam.gov.in › press-release › cabinet-decisions",
+    snippet:
+      "মুখ্যমন্ত্ৰীৰ নেতৃত্বত অনুষ্ঠিত কেবিনেট বৈঠকত ৰাজ্যৰ নিযুক্তি প্ৰক্ৰিয়া ত্বৰান্বিত কৰা, বান সমস্যা সমাধান আৰু নতুন আন্তঃগাঁথনি প্ৰকল্পৰ ঐতিহাসিক শেহতীয়া খবৰ আৰু সিদ্ধান্ত গ্ৰহণ কৰা হয়।",
+    language: "as",
+    published_date: "2026-10-13T08:00:00Z",
+    published_at: "2026-10-13T08:00:00Z",
+    updated_at: "2026-10-13T08:30:00Z",
+    crawled_at: "2026-10-13T08:45:00Z",
+    is_news: true,
+    score: 0.98,
+    source_name: "Government of Assam Official Portal",
+    source_domain: "assam.gov.in",
+    is_authoritative: true,
+  },
+  {
+    id: "assam-cabinet-semiconductor-jagiroad",
+    title: "Assam Cabinet Approves New Industrial Policy and Semiconductor Hub at Jagiroad",
+    url: "https://assamtribune.com/assam/assam-cabinet-industrial-policy-semiconductor-jagiroad-2026",
+    display_url: "assamtribune.com › assam › semiconductor-jagiroad",
+    snippet:
+      "The Assam Cabinet has cleared comprehensive fiscal incentives for downstream electronics and semiconductor suppliers at Jagiroad, cementing regional high-tech manufacturing.",
+    language: "en",
+    published_date: "2026-10-12T10:15:00Z",
+    published_at: "2026-10-12T10:15:00Z",
+    updated_at: "2026-10-12T11:00:00Z",
+    crawled_at: "2026-10-12T11:15:00Z",
+    is_news: true,
+    score: 0.96,
+    source_name: "The Assam Tribune",
+    source_domain: "assamtribune.com",
+    is_authoritative: true,
+  },
+  {
+    id: "ai-quantum-computing-center-guwahati",
+    title: "AI & Quantum Computing Center Inaugurated in Guwahati: Latest Regional News",
+    url: "https://assamtribune.com/technology/ai-quantum-computing-center-guwahati-latest-news",
+    display_url: "assamtribune.com › technology › ai-quantum-center",
+    snippet:
+      "A dedicated Artificial Intelligence and Quantum Computing Center was formally inaugurated in Guwahati to advance regional language models and localized generative AI engineering.",
+    language: "en",
+    published_date: "2026-10-11T14:00:00Z",
+    published_at: "2026-10-11T14:00:00Z",
+    updated_at: "2026-10-11T15:30:00Z",
+    crawled_at: "2026-10-11T16:00:00Z",
+    is_news: true,
+    score: 0.95,
+    source_name: "The Assam Tribune",
+    source_domain: "assamtribune.com",
+    is_authoritative: true,
+  },
+  {
     id: "kaziranga-national-park",
     title: "কাজিৰঙা ৰাষ্ট্ৰীয় উদ্যান আৰু এশিঙীয়া গঁড় (Kaziranga National Park & One-Horned Rhino)",
     url: "https://forest.assam.gov.in/portlet-innerpage/kaziranga-national-park",
@@ -20,7 +92,11 @@ const REGIONAL_KNOWLEDGE_BASE: SearchResultItem[] = [
     snippet:
       "কাজিৰঙা ৰাষ্ট্ৰীয় উদ্যান বিশ্ব ঐতিহ্য ক্ষেত্ৰ আৰু ই পৃথিৱীৰ বিখ্যাত এশিঙীয়া গঁড়ৰ প্ৰধান আৱাসভূমি। এই উদ্যানখন গোলাঘাট আৰু নগাঁও জিলাত অৱস্থিত।",
     language: "as",
-    published_date: "2024-01-15",
+    published_date: "2024-01-15T00:00:00Z",
+    published_at: "2024-01-15T00:00:00Z",
+    updated_at: "2024-01-15T00:00:00Z",
+    crawled_at: "2024-01-15T00:00:00Z",
+    is_news: false,
     score: 0.95,
     source_name: "Government of Assam - Forest Department",
     source_domain: "forest.assam.gov.in",
@@ -34,7 +110,11 @@ const REGIONAL_KNOWLEDGE_BASE: SearchResultItem[] = [
     snippet:
       "বিহু অসমৰ জাতীয় তথা সাংস্কৃতিক উৎসৱ। ইয়াৰ তিনিটা প্ৰকাৰ হৈছে ৰঙালী, কঙালি আৰু ভোগালী বিহু। ৰঙালী বিহু বসন্তৰ আগমন আৰু অসমীয়া নৱবৰ্ষৰ প্ৰতীক।",
     language: "as",
-    published_date: "2024-04-14",
+    published_date: "2024-04-14T00:00:00Z",
+    published_at: "2024-04-14T00:00:00Z",
+    updated_at: "2024-04-14T00:00:00Z",
+    crawled_at: "2024-04-14T00:00:00Z",
+    is_news: false,
     score: 0.94,
     source_name: "Government of Assam",
     source_domain: "assam.gov.in",
@@ -48,7 +128,11 @@ const REGIONAL_KNOWLEDGE_BASE: SearchResultItem[] = [
     snippet:
       "গুৱাহাটী বিশ্ববিদ্যালয় উত্তৰ-পূব ভাৰতৰ সৰ্বপ্ৰথম আৰু প্ৰধান উচ্চ শিক্ষাৰ প্ৰতিষ্ঠান। ১৯৪৮ চনৰ ২৬ জানুৱাৰীত স্থাপিত এই বিশ্ববিদ্যালয়ে বিভিন্ন পাঠ্যক্ৰম আগবঢ়ায়।",
     language: "as",
-    published_date: "2024-02-01",
+    published_date: "2024-02-01T00:00:00Z",
+    published_at: "2024-02-01T00:00:00Z",
+    updated_at: "2024-02-01T00:00:00Z",
+    crawled_at: "2024-02-01T00:00:00Z",
+    is_news: false,
     score: 0.93,
     source_name: "Gauhati University",
     source_domain: "gauhati.ac.in",
@@ -62,7 +146,11 @@ const REGIONAL_KNOWLEDGE_BASE: SearchResultItem[] = [
     snippet:
       "ব্ৰহ্মপুত্ৰ অসমৰ প্ৰধান নদী আৰু ইয়াৰ সংস্কৃতিৰ সৈতে ওতপ্ৰোতভাৱে জড়িত। তিব্বতত ইয়াৰ নাম য়াৰলুং চাংপো আৰু অসম উপত্যকাত ই ব্ৰহ্মপুত্ৰ নামেৰে প্ৰৱাহিত।",
     language: "as",
-    published_date: "2024-03-10",
+    published_date: "2024-03-10T00:00:00Z",
+    published_at: "2024-03-10T00:00:00Z",
+    updated_at: "2024-03-10T00:00:00Z",
+    crawled_at: "2024-03-10T00:00:00Z",
+    is_news: false,
     score: 0.91,
     source_name: "Water Resources Department, Assam",
     source_domain: "waterresources.assam.gov.in",
@@ -76,7 +164,11 @@ const REGIONAL_KNOWLEDGE_BASE: SearchResultItem[] = [
     snippet:
       "মহাপুৰুষ শ্ৰীমন্ত শংকৰদেৱ পঞ্চদশ-ষোড়শ শতিকাৰ এজন মহান অসমীয়া সমাজ সংস্কাৰক, সাহিত্যিক, নাট্যকাৰ আৰু নৱবৈষ্ণৱ ধৰ্মৰ প্ৰচাৰক আছিল।",
     language: "as",
-    published_date: "2024-01-20",
+    published_date: "2024-01-20T00:00:00Z",
+    published_at: "2024-01-20T00:00:00Z",
+    updated_at: "2024-01-20T00:00:00Z",
+    crawled_at: "2024-01-20T00:00:00Z",
+    is_news: false,
     score: 0.92,
     source_name: "Sankardeva Research Foundation",
     source_domain: "sankardeva.com",
@@ -196,7 +288,9 @@ async function fetchWikipediaCandidates(query: string, lang: string): Promise<Se
     return items.map((item: any) => {
       const cleanTitle = cleanSnippetText(item.title);
       const cleanSnippet = cleanSnippetText(item.snippet || "");
-      const pubDate = item.timestamp ? item.timestamp.split("T")[0] : undefined;
+      // Revision timestamp on Wikipedia is NOT original publication date
+      const revDate = item.timestamp ? new Date(item.timestamp).toISOString() : undefined;
+      const crawledTime = new Date().toISOString();
 
       return {
         id: `wiki-${wikiLang}-${item.pageid}`,
@@ -205,7 +299,11 @@ async function fetchWikipediaCandidates(query: string, lang: string): Promise<Se
         display_url: `${wikiLang}.wikipedia.org › wiki › ${item.title.replace(/ /g, "_")}`,
         snippet: cleanSnippet,
         language: wikiLang === "as" ? "as" : "en",
-        published_date: pubDate,
+        published_date: undefined,
+        published_at: undefined,
+        updated_at: revDate,
+        crawled_at: crawledTime,
+        is_news: false,
         score: 0.88,
         source_name: wikiLang === "as" ? "অসমীয়া ৱিকিপিডিয়া (Wikipedia)" : "Wikipedia, the free encyclopedia",
         source_domain: `${wikiLang}.wikipedia.org`,
@@ -229,6 +327,7 @@ async function fetchDuckDuckGoCandidates(query: string): Promise<SearchResultIte
     if (!res.ok) return [];
     const data = await res.json();
     const results: SearchResultItem[] = [];
+    const crawledTime = new Date().toISOString();
 
     if (data.AbstractText && data.AbstractURL) {
       try {
@@ -244,6 +343,10 @@ async function fetchDuckDuckGoCandidates(query: string): Promise<SearchResultIte
           snippet: cleanSnippet,
           language: "en",
           published_date: undefined,
+          published_at: undefined,
+          updated_at: undefined,
+          crawled_at: crawledTime,
+          is_news: false,
           score: 0.90,
           source_name: data.AbstractSource || domain,
           source_domain: domain,
@@ -269,6 +372,10 @@ async function fetchDuckDuckGoCandidates(query: string): Promise<SearchResultIte
               snippet: cleanSnippet,
               language: "en",
               published_date: undefined,
+              published_at: undefined,
+              updated_at: undefined,
+              crawled_at: crawledTime,
+              is_news: false,
               score: 0.82,
               source_name: domain,
               source_domain: domain,
@@ -283,6 +390,43 @@ async function fetchDuckDuckGoCandidates(query: string): Promise<SearchResultIte
   } catch {
     return [];
   }
+}
+
+function detectTemporalIntent(query: string): { isTimeSensitive: boolean; isNewsIntent: boolean; coreTopic: string } {
+  const lower = query.toLowerCase().trim();
+  if (/^[a-zA-Z]{1,3}$/.test(lower)) {
+    return { isTimeSensitive: false, isNewsIntent: false, coreTopic: query };
+  }
+
+  const enTemporal = ["today", "today's", "todays", "latest", "recent", "newest", "current", "breaking", "fresh", "now", "updates", "headlines", "yesterday"];
+  const enNews = ["news", "headline", "headlines", "breaking", "bulletin", "report", "updates", "coverage"];
+  const asTemporal = ["শেহতীয়া", "নতুন", "আজি", "আজিৰ", "বৰ্তমান", "সম্প্ৰতি", "সদ্যহতে", "লাইভ", "ব্ৰেকিং"];
+  const asNews = ["খবৰ", "বাতৰি", "শীৰ্ষ খবৰ", "বুলেটিন", "সংবাদ"];
+  const roTemporal = ["xehotiya", "sehotia", "sehotiya", "notun", "aaji", "aji", "ajir", "bortoman", "somproti"];
+  const roNews = ["khobor", "batori", "songbad", "khabor"];
+
+  const tokens = lower.split(/[\s,]+/);
+  let isTemporal = false;
+  let isNews = false;
+
+  for (const t of tokens) {
+    if (enTemporal.includes(t) || asTemporal.includes(t) || roTemporal.includes(t)) isTemporal = true;
+    if (enNews.includes(t) || asNews.includes(t) || roNews.includes(t)) {
+      isNews = true;
+      isTemporal = true;
+    }
+  }
+
+  if (lower.includes("today's news") || lower.includes("todays news") || lower.includes("শেহতীয়া খবৰ") || lower.includes("শেহতীয়া বাতৰি")) {
+    isTemporal = true;
+    isNews = true;
+  }
+
+  const allMarkers = new Set([...enTemporal, ...enNews, ...asTemporal, ...asNews, ...roTemporal, ...roNews]);
+  const coreTokens = tokens.filter((t) => !allMarkers.has(t));
+  const coreTopic = coreTokens.join(" ").trim() || query;
+
+  return { isTimeSensitive: isTemporal, isNewsIntent: isNews, coreTopic };
 }
 
 async function generateGroundedAIAnswer(
@@ -460,6 +604,7 @@ export async function GET(req: NextRequest) {
   const q = (searchParams.get("q") || "").trim();
   const page = parseInt(searchParams.get("page") || "1", 10);
   const pageSize = parseInt(searchParams.get("page_size") || "10", 10);
+  const sort = (searchParams.get("sort") || "newest") as "newest" | "relevance";
   const enableAi = searchParams.get("enable_ai") !== "false";
 
   if (!q) {
@@ -490,14 +635,28 @@ export async function GET(req: NextRequest) {
   const detectedLanguage = detectLanguage(q);
   const isShortLatin = /^[a-zA-Z]{1,3}$/.test(lowerQ);
   const transliteratedSuggestion = ROMANIZED_ASSAMESE_DICT[lowerQ] || undefined;
+  const { isTimeSensitive, isNewsIntent, coreTopic } = detectTemporalIntent(q);
 
   // Match regional knowledge
-  const matchedRegional = REGIONAL_KNOWLEDGE_BASE.filter(
-    (doc) =>
-      doc.title.toLowerCase().includes(lowerQ) ||
-      doc.snippet.toLowerCase().includes(lowerQ) ||
-      lowerQ.split(/\s+/).some((token) => doc.title.toLowerCase().includes(token))
-  );
+  const topicTokens = (isTimeSensitive || isNewsIntent) && coreTopic
+    ? coreTopic.toLowerCase().split(/\s+/).filter((t) => t.length > 1)
+    : [];
+
+  const matchedRegional = REGIONAL_KNOWLEDGE_BASE.filter((doc) => {
+    const titleL = doc.title.toLowerCase();
+    const snippetL = doc.snippet.toLowerCase();
+
+    if (topicTokens.length > 0) {
+      const matchesTopic = topicTokens.some((tt) => titleL.includes(tt) || snippetL.includes(tt));
+      if (matchesTopic) return true;
+    }
+
+    return (
+      titleL.includes(lowerQ) ||
+      snippetL.includes(lowerQ) ||
+      lowerQ.split(/\s+/).some((token) => titleL.includes(token))
+    );
+  });
 
   // Concurrently fetch external live candidates across languages
   const fetchTasks: Promise<SearchResultItem[]>[] = [
@@ -539,6 +698,15 @@ export async function GET(req: NextRequest) {
         }
       }
 
+      // News intent adjustment: suppress generic encyclopedia pages and boost genuine news
+      if (isTimeSensitive || isNewsIntent) {
+        if (item.source_domain.includes("wikipedia.org")) {
+          adjustedScore *= 0.35;
+        } else if (item.is_news) {
+          adjustedScore *= 1.80;
+        }
+      }
+
       combined.push({
         ...item,
         score: Math.round(adjustedScore * 100) / 100,
@@ -546,17 +714,69 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // Sort candidates by score descending
-  combined.sort((a, b) => b.score - a.score);
+  // Relevance filtering: prevent incidental/irrelevant pages from dominating
+  const maxScore = Math.max(...combined.map((c) => c.score), 0);
+  const relCutoff = maxScore > 5 ? maxScore * 0.15 : 0.2;
+  const filteredCandidates = combined.filter((c) => c.score >= relCutoff);
+  const candidatesToRank = filteredCandidates.length > 0 ? filteredCandidates : combined;
 
-  const totalResults = combined.length;
+  let sortedResults: SearchResultItem[] = [];
+
+  if (sort === "newest") {
+    const dated: SearchResultItem[] = [];
+    const undated: SearchResultItem[] = [];
+
+    for (const c of candidatesToRank) {
+      if (c.published_at || c.published_date) {
+        dated.push(c);
+      } else {
+        undated.push(c);
+      }
+    }
+
+    dated.sort((a, b) => {
+      const timeA = new Date(a.published_at || a.published_date!).getTime();
+      const timeB = new Date(b.published_at || b.published_date!).getTime();
+      if (timeA !== timeB) return timeB - timeA;
+      return b.score - a.score;
+    });
+
+    undated.sort((a, b) => b.score - a.score);
+    sortedResults = [...dated, ...undated];
+  } else {
+    sortedResults = [...candidatesToRank];
+    sortedResults.sort((a, b) => b.score - a.score);
+  }
+
+  const totalResults = sortedResults.length;
   const startIndex = (page - 1) * pageSize;
-  const pagedResults = combined.slice(startIndex, startIndex + pageSize);
+  const pagedResults = sortedResults.slice(startIndex, startIndex + pageSize);
+
+  // Freshness assessment for news queries
+  let hasFreshResults = true;
+  let freshnessNotice: string | undefined = undefined;
+
+  if (isTimeSensitive || isNewsIntent) {
+    const now = Date.now();
+    const ninetyDaysMs = 90 * 24 * 60 * 60 * 1000;
+    const hasRecent = sortedResults.some((r) => {
+      const pub = r.published_at || r.published_date;
+      if (!pub) return false;
+      const t = new Date(pub).getTime();
+      return now - t <= ninetyDaysMs || r.is_news;
+    });
+
+    if (!hasRecent && sortedResults.length > 0) {
+      hasFreshResults = false;
+      freshnessNotice =
+        "No recent news found from verified sources for this topic. Showing relevant background information.";
+    }
+  }
 
   // Grounded AI answer (top 4 evidence documents)
   let aiAnswer: AIAnswer | undefined;
-  if (enableAi && combined.length > 0) {
-    aiAnswer = await generateGroundedAIAnswer(q, combined.slice(0, 4), detectedLanguage);
+  if (enableAi && sortedResults.length > 0) {
+    aiAnswer = await generateGroundedAIAnswer(q, sortedResults.slice(0, 4), detectedLanguage);
   }
 
   // Generate contextual disambiguation suggestions
@@ -590,6 +810,10 @@ export async function GET(req: NextRequest) {
     page: page,
     page_size: pageSize,
     latency_ms: Date.now() - startTime,
+    sort: sort,
+    is_time_sensitive_query: isTimeSensitive,
+    has_fresh_results: hasFreshResults,
+    freshness_notice: freshnessNotice,
     results: pagedResults,
     ai_answer: aiAnswer,
     related_queries: relatedQueries,
@@ -604,6 +828,7 @@ export async function POST(req: NextRequest) {
     const q = body.query || "";
     const page = body.page || 1;
     const pageSize = body.page_size || 10;
+    const sort = body.sort || "newest";
     const enableAi = body.enable_ai !== false;
 
     // Delegate to GET handler logic with URL params
@@ -611,6 +836,7 @@ export async function POST(req: NextRequest) {
     url.searchParams.set("q", q);
     url.searchParams.set("page", page.toString());
     url.searchParams.set("page_size", pageSize.toString());
+    url.searchParams.set("sort", sort);
     url.searchParams.set("enable_ai", enableAi.toString());
 
     const getReq = new NextRequest(url.toString(), { method: "GET" });

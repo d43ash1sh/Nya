@@ -1,18 +1,20 @@
 "use client";
 
 import React from "react";
-import { LanguageType, DateFilter, SafeSearchLevel } from "@/types/contracts";
-import { Calendar, Shield, Sparkles } from "lucide-react";
+import { LanguageType, DateFilter, SafeSearchLevel, SortOption } from "@/types/contracts";
+import { Calendar, Shield, Sparkles, ArrowUpDown } from "lucide-react";
 
 interface SearchFiltersProps {
   language: LanguageType;
   dateFilter: DateFilter;
   safeSearch: SafeSearchLevel;
+  sort: SortOption;
   enableAi: boolean;
   onFilterChange: (filters: {
     language?: LanguageType;
     dateFilter?: DateFilter;
     safeSearch?: SafeSearchLevel;
+    sort?: SortOption;
     enableAi?: boolean;
   }) => void;
 }
@@ -21,6 +23,7 @@ export const SearchFilters: React.FC<SearchFiltersProps> = ({
   language,
   dateFilter,
   safeSearch,
+  sort,
   enableAi,
   onFilterChange,
 }) => {
@@ -61,6 +64,20 @@ export const SearchFilters: React.FC<SearchFiltersProps> = ({
         >
           English
         </button>
+      </div>
+
+      {/* Sort Selector Dropdown (Newest first by default) */}
+      <div className="relative inline-flex items-center bg-slate-100 dark:bg-slate-900/60 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800">
+        <ArrowUpDown className="w-3.5 h-3.5 mr-1.5 text-slate-400 dark:text-nya-slate" />
+        <select
+          value={sort}
+          onChange={(e) => onFilterChange({ sort: e.target.value as SortOption })}
+          aria-label="Order search results"
+          className="bg-transparent border-0 text-slate-700 dark:text-slate-300 text-xs focus:ring-0 focus:outline-none cursor-pointer pr-1 font-medium"
+        >
+          <option value="newest" className="bg-white dark:bg-slate-900">Newest first</option>
+          <option value="relevance" className="bg-white dark:bg-slate-900">Relevance</option>
+        </select>
       </div>
 
       {/* Date Filter Dropdown */}

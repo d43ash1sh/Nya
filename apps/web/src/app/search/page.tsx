@@ -14,8 +14,9 @@ import {
   LanguageType,
   DateFilter,
   SafeSearchLevel,
+  SortOption,
 } from "@/types/contracts";
-import { AlertCircle, RefreshCw, ArrowRight, ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
+import { AlertCircle, RefreshCw, ArrowRight, ChevronLeft, ChevronRight, Sparkles, Clock, ArrowUpDown } from "lucide-react";
 
 function SearchResultsContent() {
   const searchParams = useSearchParams();
@@ -29,10 +30,13 @@ function SearchResultsContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Filters state
+  // Filters state (Newest first is the default order)
   const [language, setLanguage] = useState<LanguageType>("all");
   const [dateFilter, setDateFilter] = useState<DateFilter>("all");
   const [safeSearch, setSafeSearch] = useState<SafeSearchLevel>("moderate");
+  const [sort, setSort] = useState<SortOption>(
+    (searchParams.get("sort") as SortOption) === "relevance" ? "relevance" : "newest"
+  );
   const [enableAi, setEnableAi] = useState(true);
 
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -44,6 +48,7 @@ function SearchResultsContent() {
       lang: LanguageType,
       date: DateFilter,
       safe: SafeSearchLevel,
+      sortOrder: SortOption,
       ai: boolean
     ) => {
       if (!q.trim()) {
@@ -70,6 +75,7 @@ function SearchResultsContent() {
           language: lang,
           dateFilter: date,
           safeSearch: safe,
+          sort: sortOrder,
           enableAi: ai,
           signal: controller.signal,
         });
@@ -90,19 +96,21 @@ function SearchResultsContent() {
   );
 
   useEffect(() => {
-    executeSearch(query, page, language, dateFilter, safeSearch, enableAi);
-  }, [query, page, language, dateFilter, safeSearch, enableAi, executeSearch]);
+    executeSearch(query, page, language, dateFilter, safeSearch, sort, enableAi);
+  }, [query, page, language, dateFilter, safeSearch, sort, enableAi, executeSearch]);
 
   const handleFilterChange = (newFilters: {
     language?: LanguageType;
     dateFilter?: DateFilter;
     safeSearch?: SafeSearchLevel;
+    sort?: SortOption;
     enableAi?: boolean;
   }) => {
     setPage(1);
     if (newFilters.language !== undefined) setLanguage(newFilters.language);
     if (newFilters.dateFilter !== undefined) setDateFilter(newFilters.dateFilter);
     if (newFilters.safeSearch !== undefined) setSafeSearch(newFilters.safeSearch);
+    if (newFilters.sort !== undefined) setSort(newFilters.sort);
     if (newFilters.enableAi !== undefined) setEnableAi(newFilters.enableAi);
   };
 
@@ -129,6 +137,7 @@ function SearchResultsContent() {
           language={language}
           dateFilter={dateFilter}
           safeSearch={safeSearch}
+          sort={sort}
           enableAi={enableAi}
           onFilterChange={handleFilterChange}
         />
@@ -178,7 +187,7 @@ function SearchResultsContent() {
             <p className="text-sm text-slate-600 dark:text-slate-300 mb-4">{error}</p>
             <button
               type="button"
-              onClick={() => executeSearch(query, page, language, dateFilter, safeSearch, enableAi)}
+              onClick={() => executeSearch(query, page, language, dateFilter, safeSearch, sort, enableAi)}
               className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 text-xs font-semibold text-white transition-colors"
             >
               <RefreshCw className="w-3.5 h-3.5" />
@@ -204,12 +213,39 @@ function SearchResultsContent() {
               </div>
             )}
 
+            {/* Freshness limitation notice if time-sensitive intent detected but no fresh verified results exist */}
+            {data.freshness_notice && (
+              <div className="flex items-start gap-3 p-4 mb-5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-slate-800 dark:text-slate-200 shadow-sm text-xs">
+                <Clock className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <div className="font-semibold text-amber-800 dark:text-amber-300">
+                    Freshness Notice
+                  </div>
+                  <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
+                    {data.freshness_notice}
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* Results count & latency */}
             <div className="flex items-center justify-between text-xs text-slate-500 dark:text-nya-slate mb-4">
-              <span>
-                Found {data.total_results} results ({data.latency_ms} ms)
-                {totalPages > 1 && ` • Page ${page} of ${totalPages}`}
-              </span>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span>
+                  Found {data.total_results} results ({data.latency_ms} ms)
+                  {totalPages > 1 && ` • Page ${page} of ${totalPages}`}
+                </span>
+                {data.sort && (
+                  <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/60 font-medium text-slate-600 dark:text-slate-300">
+                    Sorted: {data.sort === "newest" ? "Newest first" : "Relevance"}
+                  </span>
+                )}
+                {data.is_time_sensitive_query && (
+                  <span className="px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800/50 text-blue-700 dark:text-blue-300 font-medium">
+                    Time-sensitive query
+                  </span>
+                )}
+              </div>
               <FeedbackModal query={query} />
             </div>
 

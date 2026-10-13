@@ -83,3 +83,109 @@ def test_ranking_short_query_word_boundary():
     assert score_fp == 0.0, "Substring 'ko' inside 'Tokyo' must not receive false positive points"
     assert score_exact > 0.0, "Exact word 'KO' should receive points"
     assert score_exact > score_fp
+
+
+def test_ranking_newest_first_order():
+    """Verify that sort_by='newest' places items in descending verified publication order."""
+    ranker = RankingEngine()
+    terms = ["news", "assam"]
+    normalized_q = "news assam"
+
+    docs = [
+        {
+            "id": "1",
+            "title": "Assam News Today",
+            "body_text": "Recent news from Assam on Oct 11.",
+            "source_domain": "news1.com",
+            "published_at": "2026-10-11T10:00:00Z",
+            "is_news": True,
+        },
+        {
+            "id": "2",
+            "title": "Assam News Breaking",
+            "body_text": "Recent news from Assam on Oct 13.",
+            "source_domain": "news2.com",
+            "published_at": "2026-10-13T10:00:00Z",
+            "is_news": True,
+        },
+        {
+            "id": "3",
+            "title": "Assam News Yesterday",
+            "body_text": "Recent news from Assam on Oct 12.",
+            "source_domain": "news3.com",
+            "published_at": "2026-10-12T10:00:00Z",
+            "is_news": True,
+        },
+    ]
+
+    reranked = ranker.rank_and_diversify(docs, terms, normalized_q, "en", sort_by="newest")
+    ids = [d["id"] for d in reranked]
+    assert ids == ["2", "3", "1"], "Should sort descending by publication date: Oct 13, Oct 12, Oct 11"
+
+
+def test_ranking_undated_placed_last():
+    """Verify that undated items (or items with only updated_at) are placed after verified published items."""
+    ranker = RankingEngine()
+    terms = ["assam", "news"]
+    normalized_q = "assam news"
+
+    docs = [
+        {
+            "id": "wiki-1",
+            "title": "Assam News Wikipedia",
+            "body_text": "Overview of news media in Assam.",
+            "source_domain": "en.wikipedia.org",
+            "published_at": None,
+            "updated_at": "2026-10-13T12:00:00Z",  # Revision timestamp only
+            "is_news": False,
+        },
+        {
+            "id": "news-1",
+            "title": "Assam Floods Relief Updates",
+            "body_text": "Assam flood news update published Oct 11.",
+            "source_domain": "assamtribune.com",
+            "published_at": "2026-10-11T08:00:00Z",
+            "is_news": True,
+        },
+        {
+            "id": "undated-1",
+            "title": "Assam General Info",
+            "body_text": "Information about Assam news portal.",
+            "source_domain": "portal.org",
+            "published_at": None,
+            "updated_at": None,
+            "is_news": False,
+        },
+    ]
+
+    reranked = ranker.rank_and_diversify(docs, terms, normalized_q, "en", sort_by="newest")
+    # Verified news-1 MUST come before wiki-1 and undated-1
+    assert reranked[0]["id"] == "news-1", "Verified publication date must rank before undated / revision-only items"
+
+
+def test_news_intent_deprioritizes_wikipedia():
+    """Verify that queries with news intent deprioritize Wikipedia and boost news sources."""
+    ranker = RankingEngine()
+    terms = ["news", "assam"]
+    normalized_q = "latest assam news"
+
+    doc_wiki = {
+        "id": "wiki",
+        "title": "The Assam News (newspaper)",
+        "body_text": "The Assam News was a historical newspaper in Assam.",
+        "source_domain": "en.wikipedia.org",
+        "is_news": False,
+    }
+    doc_news = {
+        "id": "news",
+        "title": "Current Assam Development News",
+        "body_text": "Assam cabinet approves new infrastructure.",
+        "source_domain": "assamtribune.com",
+        "is_news": True,
+    }
+
+    score_wiki = ranker.score_document(doc_wiki, terms, normalized_q, "en", is_news_query=True)
+    score_news = ranker.score_document(doc_news, terms, normalized_q, "en", is_news_query=True)
+
+    assert score_news > score_wiki, "News articles should significantly outscore Wikipedia when query is a news query"
+

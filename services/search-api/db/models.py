@@ -59,6 +59,10 @@ class IndexedDocument(Base):
     source_id = Column(String(36), ForeignKey("source_registry.id"), nullable=True)
     content_hash = Column(String(64), nullable=False, index=True)  # SHA256 / SimHash for deduplication
     published_date = Column(DateTime(timezone=True), nullable=True)
+    published_at = Column(DateTime(timezone=True), nullable=True)
+    updated_at = Column(DateTime(timezone=True), nullable=True)
+    crawled_at = Column(DateTime(timezone=True), default=utc_now)
+    is_news = Column(Boolean, default=False, nullable=False, index=True)
     indexed_at = Column(DateTime(timezone=True), default=utc_now)
     is_removed = Column(Boolean, default=False, nullable=False, index=True)  # Privacy/Takedown flag
 
@@ -66,6 +70,7 @@ class IndexedDocument(Base):
 
     __table_args__ = (
         Index("idx_doc_search", "is_removed", "language"),
+        Index("idx_doc_published_at", "published_at"),
     )
 
 

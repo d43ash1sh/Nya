@@ -8,11 +8,17 @@ export type SafeSearchLevel = 'off' | 'moderate' | 'strict';
 
 export type DateFilter = 'all' | 'past_24h' | 'past_week' | 'past_month' | 'past_year';
 
+export type SortOption = 'newest' | 'relevance';
+
 export type AIAnswerStatus =
   | 'grounded'
   | 'insufficient_evidence'
   | 'disabled'
   | 'budget_exceeded'
+  | 'rate_limited'
+  | 'authentication_failed'
+  | 'timeout'
+  | 'configuration_error'
   | 'provider_unavailable'
   | 'validation_failed';
 
@@ -35,6 +41,9 @@ export interface AIAnswer {
   confidence: number;
   disclaimer?: string;
   model_name?: string;
+  request_id?: string;
+  error_code?: string;
+  retry_after_seconds?: number;
 }
 
 export interface SearchResultItem {
@@ -45,6 +54,10 @@ export interface SearchResultItem {
   snippet: string;
   language: string;
   published_date?: string;
+  published_at?: string;
+  updated_at?: string;
+  crawled_at?: string;
+  is_news?: boolean;
   score: number;
   source_name: string;
   source_domain: string;
@@ -61,6 +74,10 @@ export interface SearchResponse {
   page: number;
   page_size: number;
   latency_ms: number;
+  sort?: SortOption;
+  is_time_sensitive_query?: boolean;
+  has_fresh_results?: boolean;
+  freshness_notice?: string;
   results: SearchResultItem[];
   ai_answer?: AIAnswer;
   related_queries: string[];

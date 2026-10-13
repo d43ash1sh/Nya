@@ -24,9 +24,27 @@ async_session_factory = async_sessionmaker(
 
 
 async def init_db() -> None:
-    """Initialize database tables."""
+    """Initialize database tables and ensure column schema compatibility."""
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
+        def migrate_sqlite_columns(sync_conn):
+            from sqlalchemy import inspect, text
+            inspector = inspect(sync_conn)
+            if "indexed_documents" in inspector.get_table_names():
+                cols = {c["name"] for c in inspector.get_columns("indexed_documents")}
+                if "published_at" not in cols:
+                    sync_conn.execute(text("ALTER TABLE indexed_documents ADD COLUMN published_at DATETIME"))
+                if "updated_at" not in cols:
+                    sync_conn.execute(text("ALTER TABLE indexed_documents ADD COLUMN updated_at DATETIME"))
+                if "crawled_at" not in cols:
+                    sync_conn.execute(text("ALTER TABLE indexed_documents ADD COLUMN crawled_at DATETIME"))
+                if "is_news" not in cols:
+                    sync_conn.execute(text("ALTER TABLE indexed_documents ADD COLUMN is_news BOOLEAN DEFAULT 0"))
+                # Backfill published_at from published_date where available
+                sync_conn.execute(text("UPDATE indexed_documents SET published_at = published_date WHERE published_at IS NULL AND published_date IS NOT NULL"))
+
+        await conn.run_sync(migrate_sqlite_columns)
 
 
 async def get_db_session() -> AsyncGenerator[AsyncSession, None]:

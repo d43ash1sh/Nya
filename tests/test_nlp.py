@@ -15,6 +15,7 @@ from nlp.assamese_normalizer import AssameseNormalizer
 from nlp.transliteration import AssameseTransliterationEngine
 from nlp.script_detector import ScriptDetector
 from nlp.query_processor import QueryProcessor
+from nlp.temporal_classifier import TemporalClassifier
 
 
 def test_assamese_normalizer_nfc_and_whitespace():
@@ -87,3 +88,62 @@ def test_ambiguous_query_detection():
     assert detector.is_ambiguous_query("ki") is True
     assert detector.is_ambiguous_query("kaziranga") is False
     assert detector.is_ambiguous_query("বিহু") is False
+
+
+def test_temporal_classifier_english_queries():
+    tc = TemporalClassifier()
+    res1 = tc.classify("today")
+    assert res1["is_time_sensitive"] is True
+
+    res2 = tc.classify("today's news")
+    assert res2["is_time_sensitive"] is True
+    assert res2["is_news_intent"] is True
+
+    res3 = tc.classify("latest Assam news")
+    assert res3["is_time_sensitive"] is True
+    assert res3["is_news_intent"] is True
+    assert "assam" in res3["core_topic"]
+
+    res4 = tc.classify("latest AI news")
+    assert res4["is_time_sensitive"] is True
+    assert res4["is_news_intent"] is True
+    assert "ai" in res4["core_topic"]
+
+
+def test_temporal_classifier_assamese_native_queries():
+    tc = TemporalClassifier()
+    # Native Assamese latest news queries
+    res1 = tc.classify("বিষয়টোৰ শেহতীয়া খবৰ")
+    assert res1["is_time_sensitive"] is True
+    assert res1["is_news_intent"] is True
+
+    res2 = tc.classify("আজিৰ বাতৰি")
+    assert res2["is_time_sensitive"] is True
+    assert res2["is_news_intent"] is True
+
+    res3 = tc.classify("শেহতীয়া অসমৰ বাতৰি")
+    assert res3["is_time_sensitive"] is True
+    assert res3["is_news_intent"] is True
+
+
+def test_temporal_classifier_romanized_assamese_queries():
+    tc = TemporalClassifier()
+    res1 = tc.classify("xehotiya khobor")
+    assert res1["is_time_sensitive"] is True
+    assert res1["is_news_intent"] is True
+
+    res2 = tc.classify("aajir batori")
+    assert res2["is_time_sensitive"] is True
+    assert res2["is_news_intent"] is True
+
+
+def test_temporal_classifier_evergreen_queries():
+    tc = TemporalClassifier()
+    res1 = tc.classify("Kaziranga National Park")
+    assert res1["is_time_sensitive"] is False
+    assert res1["is_news_intent"] is False
+
+    res2 = tc.classify("ko")
+    assert res2["is_time_sensitive"] is False
+    assert res2["is_news_intent"] is False
+

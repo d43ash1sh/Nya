@@ -45,7 +45,9 @@ DEVELOPMENT_DOCUMENTS = [
         "title": "বিহু — অসমৰ জাতীয় উৎসৱ (Bihu - National Festival of Assam)",
         "domain": "as.wikipedia.org",
         "language": "as",
-        "published_date": datetime(2024, 4, 10, tzinfo=timezone.utc),
+        "published_at": None,
+        "updated_at": datetime(2024, 4, 10, tzinfo=timezone.utc),
+        "is_news": False,
         "body_text": (
             "বিহু অসমৰ জাতীয় উৎসৱ। অসমীয়াত তিনিটা বিহু পালন কৰা হয়: ৰঙালী বা ব'হাগ বিহু, কঙালি বা কাতি বিহু, আৰু ভোগালী বা মাঘ বিহু। "
             "ৰঙালী বিহু বসন্ত কালত অসমীয়া নৱবৰ্ষৰ আৰম্ভণিত এপ্ৰিল মাহত উলহ-মালহেৰে পালন কৰা হয়। এই সময়ত বিহু নৃত্য, ঢোল, পেঁপা আৰু গগনাৰ মাতত অসম মুখৰিত হয়। "
@@ -129,13 +131,80 @@ DEVELOPMENT_DOCUMENTS = [
         "title": "মাজুলী — ব্ৰহ্মপুত্ৰৰ বুকুত বিশ্বৰ বৃহত্তম নদীদ্বীপ (Majuli Island)",
         "domain": "as.wikipedia.org",
         "language": "as",
-        "published_date": datetime(2024, 3, 22, tzinfo=timezone.utc),
+        "published_at": None,
+        "updated_at": datetime(2024, 3, 22, tzinfo=timezone.utc),
+        "is_news": False,
         "body_text": (
             "মাজুলী ব্ৰহ্মপুত্ৰ নদীৰ বুকুত অৱস্থিত পৃথিৱীৰ সৰ্ববৃহৎ নদীদ্বীপ আৰু অসমৰ এখন সুকীয়া জিলা। "
             "ই অসমৰ নৱবৈষ্ণৱ সংস্কৃতি আৰু সত্ৰীয়া পৰম্পৰাৰ মূল পীঠস্থান। আউনীআটী সত্ৰ, কমলাবাৰী সত্ৰ, গড়মূৰ সত্ৰ আৰু দক্ষিণপাট সত্ৰ আদি ঐতিহাসিক সত্ৰসমূহ মাজুলীতে অৱস্থিত। "
             "মাজুলীৰ মুখাশিল্প আৰু মৃৎশিল্প সমগ্ৰ বিশ্বতে সমাদৃত।"
         ),
         "snippet": "ব্ৰহ্মপুত্ৰৰ বুকুত অৱস্থিত মাজুলী বিশ্বৰ বৃহত্তম নদীদ্বীপ আৰু সত্ৰীয়া সংস্কৃতিৰ প্ৰাণকেন্দ্ৰ। সত্ৰসমূহ, মুখাশিল্প আৰু বৈষ্ণৱ ঐতিহ্যৰ বাবে বিখ্যাত।",
+    },
+    {
+        "url": "https://assamtribune.com/assam/todays-top-news-assam-infrastructure-connectivity",
+        "canonical_url": "https://assamtribune.com/assam/todays-top-news-assam-infrastructure-connectivity",
+        "title": "Today's Top News: Assam Infrastructure Push and Northeast Connectivity Milestones",
+        "domain": "assamtribune.com",
+        "language": "en",
+        "published_at": datetime(2026, 10, 13, 6, 30, tzinfo=timezone.utc),
+        "updated_at": datetime(2026, 10, 13, 7, 0, tzinfo=timezone.utc),
+        "is_news": True,
+        "body_text": (
+            "Today's top news and headlines across Assam feature major infrastructure expansions, "
+            "including new bridge projects across the Brahmaputra, elevated highway corridors in Kaziranga, "
+            "and renewable energy initiatives. The state transport department confirmed modern electric transit hubs "
+            "will be operational in Guwahati by next month."
+        ),
+        "snippet": "Today's top headlines across Assam feature expanded highway networks, renewable solar parks in Dima Hasao, and rapid infrastructure expansion.",
+    },
+    {
+        "url": "https://assamtribune.com/assam/assam-cabinet-industrial-policy-semiconductor-jagiroad-2026",
+        "canonical_url": "https://assamtribune.com/assam/assam-cabinet-industrial-policy-semiconductor-jagiroad-2026",
+        "title": "Assam Cabinet Approves New Industrial Policy and Semiconductor Hub at Jagiroad",
+        "domain": "assamtribune.com",
+        "language": "en",
+        "published_at": datetime(2026, 10, 12, 10, 15, tzinfo=timezone.utc),
+        "updated_at": datetime(2026, 10, 12, 11, 0, tzinfo=timezone.utc),
+        "is_news": True,
+        "body_text": (
+            "The Assam Cabinet has cleared comprehensive fiscal incentives for downstream electronics and semiconductor suppliers at Jagiroad. "
+            "The landmark initiative establishes Assam as an emerging high-tech hub in South Asia, creating over twenty thousand skilled engineering jobs. "
+            "Chief Minister emphasized that high-speed rail and optical freight corridors will link Jagiroad to international supply routes."
+        ),
+        "snippet": "Latest Assam Cabinet decisions clear fiscal incentives for downstream semiconductor suppliers at Jagiroad, cementing regional high-tech manufacturing.",
+    },
+    {
+        "url": "https://assamtribune.com/technology/ai-quantum-computing-center-guwahati-latest-news",
+        "canonical_url": "https://assamtribune.com/technology/ai-quantum-computing-center-guwahati-latest-news",
+        "title": "AI & Quantum Computing Center Inaugurated in Guwahati: Latest Regional News",
+        "domain": "assamtribune.com",
+        "language": "en",
+        "published_at": datetime(2026, 10, 11, 14, 0, tzinfo=timezone.utc),
+        "updated_at": datetime(2026, 10, 11, 15, 30, tzinfo=timezone.utc),
+        "is_news": True,
+        "body_text": (
+            "A dedicated Artificial Intelligence and Quantum Computing Center was formally inaugurated in Guwahati. "
+            "The center will spearhead generative AI development, regional language LLM localization for Assamese and Bodo, "
+            "and automated agricultural monitoring. Experts hailed the launch as a milestone in decentralized AI computing in India."
+        ),
+        "snippet": "Guwahati launches new AI and quantum research center to advance regional language models and localized computing breakthroughs.",
+    },
+    {
+        "url": "https://assam.gov.in/press-release/assam-cabinet-decisions-latest-october-2026",
+        "canonical_url": "https://assam.gov.in/press-release/assam-cabinet-decisions-latest-october-2026",
+        "title": "অসম চৰকাৰৰ শেহতীয়া কেবিনেট সিদ্ধান্ত: নিযুক্তি আৰু আন্তঃগাঁথনি বিকাশ (Latest Assam Cabinet Decisions)",
+        "domain": "assam.gov.in",
+        "language": "as",
+        "published_at": datetime(2026, 10, 13, 8, 0, tzinfo=timezone.utc),
+        "updated_at": datetime(2026, 10, 13, 8, 30, tzinfo=timezone.utc),
+        "is_news": True,
+        "body_text": (
+            "মুখ্যমন্ত্ৰীৰ নেতৃত্বত অনুষ্ঠিত অসম চৰকাৰৰ কেবিনেট বৈঠকত ৰাজ্যৰ স্বাৰ্থত কেইবাটাও ঐতিহাসিক শেহতীয়া খবৰ আৰু সিদ্ধান্ত গ্ৰহণ কৰা হয়। "
+            "তৃতীয় আৰু চতুৰ্থ বৰ্গৰ পদৰ বাবে নতুন নিযুক্তি পৰীক্ষাৰ দিন ঘোষণা, কৃষিসবসিডি বৃদ্ধি আৰু গুৱাহাটীৰ বান সমস্যা সমাধানৰ বাবে বিশেষ অনুমোদন প্ৰদান কৰা হয়। "
+            "বিষয়টোৰ শেহতীয়া খবৰ অনুসৰি সকলো প্ৰকল্প নিৰ্ধাৰিত সময়ত সম্পূৰ্ণ কৰাৰ নিৰ্দেশ দিয়া হৈছে।"
+        ),
+        "snippet": "কেবিনেট বৈঠকত অসম চৰকাৰে গ্ৰহণ কৰা শেহতীয়া সিদ্ধান্ত: যুৱক-যুৱতীৰ বাবে নতুন নিযুক্তি, বান সমস্যা সমাধান আৰু আন্তঃগাঁথনি উন্নয়নৰ বিশেষ আঁচনি।",
     },
 ]
 
@@ -165,6 +234,7 @@ async def seed_database():
         # Seed documents
         for doc in DEVELOPMENT_DOCUMENTS:
             source_id = source_domain_map.get(doc["domain"])
+            pub_at = doc.get("published_at") or doc.get("published_date")
             await indexer.index_document(
                 session=session,
                 url=doc["url"],
@@ -173,7 +243,10 @@ async def seed_database():
                 body_text=doc["body_text"],
                 snippet=doc["snippet"],
                 source_id=source_id,
-                published_date=doc["published_date"],
+                published_at=pub_at,
+                updated_at=doc.get("updated_at"),
+                crawled_at=doc.get("crawled_at"),
+                is_news=doc.get("is_news", False),
             )
 
     print("Seed complete: Permitted sources and authentic regional documents indexed.")

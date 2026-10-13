@@ -13,6 +13,7 @@ Applies:
 """
 
 import asyncio
+import re
 from typing import List, Dict, Any, Tuple
 from datetime import datetime, timezone, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -37,6 +38,7 @@ class RetrievalEngine:
         processed_query: ProcessedQuery,
         language_filter: str = "all",
         date_filter: str = "all",
+        sort: str = "newest",
         page: int = 1,
         page_size: int = 10,
     ) -> Tuple[List[Dict[str, Any]], int]:
@@ -44,9 +46,17 @@ class RetrievalEngine:
         Executes candidate retrieval across local index and live web providers,
         deduplicates candidates, scores them, and returns (ranked_paged_results, total_count).
         """
-        query_terms = processed_query.search_terms
+        query_terms = list(processed_query.search_terms)
         normalized_q = processed_query.normalized_query
         detected_lang = processed_query.detected_language
+
+        # If news/temporal intent detected, ensure core topic terms are searched
+        if processed_query.is_time_sensitive or processed_query.is_news_intent:
+            if processed_query.core_topic and processed_query.core_topic != normalized_q:
+                core_tokens = processed_query.core_topic.split()
+                for ct in core_tokens:
+                    if ct not in query_terms:
+                        query_terms.append(ct)
 
         # 1. Fetch local database candidates
         local_candidates = await self._search_local_db(
@@ -59,10 +69,12 @@ class RetrievalEngine:
         # 2. Concurrently fetch live web and encyclopedic candidates
         # Query external providers for broader coverage
         web_queries = [normalized_q]
+        if processed_query.core_topic and processed_query.core_topic != normalized_q:
+            web_queries.append(processed_query.core_topic)
         if processed_query.transliteration_suggestion and processed_query.transliteration_suggestion != normalized_q:
             web_queries.append(processed_query.transliteration_suggestion)
 
-        for term in processed_query.search_terms:
+        for term in query_terms:
             if any(0x0980 <= ord(c) <= 0x09FF for c in term) and term not in web_queries:
                 web_queries.append(term)
 
@@ -142,6 +154,9 @@ class RetrievalEngine:
             normalized_query=normalized_q,
             query_lang=detected_lang,
             max_results=max(100, page * page_size),
+            sort=sort,
+            is_time_sensitive=processed_query.is_time_sensitive,
+            is_news_intent=processed_query.is_news_intent,
         )
 
         # 5. Accurate pagination slicing
@@ -170,6 +185,10 @@ class RetrievalEngine:
                     IndexedDocument.language,
                     IndexedDocument.content_hash,
                     IndexedDocument.published_date,
+                    IndexedDocument.published_at,
+                    IndexedDocument.updated_at,
+                    IndexedDocument.crawled_at,
+                    IndexedDocument.is_news,
                     SourceRegistry.name.label("source_name"),
                     SourceRegistry.domain.label("source_domain"),
                     SourceRegistry.is_authoritative.label("is_authoritative"),
@@ -196,26 +215,46 @@ class RetrievalEngine:
                 elif date_filter == "past_year":
                     cutoff = now - timedelta(days=365)
                 if cutoff:
-                    stmt = stmt.where(IndexedDocument.published_date >= cutoff)
+                    stmt = stmt.where(
+                        (IndexedDocument.published_at >= cutoff) | (IndexedDocument.published_date >= cutoff)
+                    )
 
             result = await session.execute(stmt)
             rows = result.mappings().all()
+
+            def matches_term(term: str, text: str) -> bool:
+                if not term or not text:
+                    return False
+                if len(term) <= 3:
+                    return bool(re.search(rf"\b{re.escape(term)}\b", text))
+                return term in text
 
             local_matches = []
             query_terms = [t.lower() for t in processed_query.search_terms]
             norm_q = processed_query.normalized_query.lower()
 
+            # If time-sensitive query has a specific topical constraint (e.g. 'ai' in 'latest ai news'), require topic match
+            topic_tokens = (
+                [t.lower() for t in processed_query.core_topic.split() if len(t) > 1]
+                if (processed_query.is_time_sensitive or processed_query.is_news_intent) and processed_query.core_topic
+                else []
+            )
+
             for row in rows:
                 title_lower = row["title"].lower()
                 body_lower = row["body_text"].lower()
 
+                # Enforce topical filter: if query was about a specific subject, document must match the subject
+                if topic_tokens and not any(matches_term(tt, title_lower) or matches_term(tt, body_lower) for tt in topic_tokens):
+                    continue
+
                 is_match = False
                 for term in query_terms:
-                    if term in title_lower or term in body_lower:
+                    if matches_term(term, title_lower) or matches_term(term, body_lower):
                         is_match = True
                         break
 
-                if is_match or norm_q in title_lower or norm_q in body_lower:
+                if is_match or matches_term(norm_q, title_lower) or matches_term(norm_q, body_lower):
                     doc_dict = dict(row)
                     doc_dict["id"] = str(doc_dict["id"])
                     local_matches.append(doc_dict)

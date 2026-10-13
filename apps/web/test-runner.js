@@ -116,10 +116,11 @@ test('route.ts strictly defines authoritative domain patterns and rejects Wikipe
 });
 
 // Test 11: Date metadata provenance without fake today substitution
-test('route.ts does not substitute current date for missing publication dates', () => {
+test('route.ts does not substitute current date for missing publication dates and tracks Wikipedia as updated_at', () => {
   const routeContent = fs.readFileSync(path.join(__dirname, 'src/app/api/v1/search/route.ts'), 'utf-8');
   assert(!routeContent.includes('new Date().toISOString().split("T")[0]'), 'Should not substitute current date');
-  assert(routeContent.includes('item.timestamp ? item.timestamp.split("T")[0] : undefined'), 'Should extract genuine timestamp');
+  assert(routeContent.includes('updated_at: revDate'), 'Should set Wikipedia revision date as updated_at');
+  assert(routeContent.includes('published_date: undefined'), 'Wikipedia should not claim revision timestamp as published date');
 });
 
 // Test 12: Ambiguous short-query transliteration and multi-script handling
@@ -131,8 +132,33 @@ test('route.ts maps ko to Assamese transliteration and handles ambiguous short q
   assert(routeContent.includes('wordBoundaryRegex'), 'Should use word boundary matching for short terms');
 });
 
+// Test 13: SearchFilters and SearchResultItem newest-first sorting & timestamp semantics
+test('SearchResultItem differentiates published vs updated dates with timezone policy', () => {
+  const itemContent = fs.readFileSync(path.join(__dirname, 'src/components/SearchResultItem.tsx'), 'utf-8');
+  assert(itemContent.includes('formatDateWithTimezone'), 'Should format dates with documented timezone policy');
+  assert(itemContent.includes('timeZone: "Asia/Kolkata"'), 'Should target IST (Asia/Kolkata) timezone');
+  assert(itemContent.includes('Published:'), 'Should display Published: for verified publication dates');
+  assert(itemContent.includes('Updated:'), 'Should display Updated: for last modified / revision dates');
+  assert(itemContent.includes('Undated'), 'Should clearly display Undated for undated items');
+  assert(itemContent.includes('result.is_news'), 'Should support news badge');
+
+  const filterContent = fs.readFileSync(path.join(__dirname, 'src/components/SearchFilters.tsx'), 'utf-8');
+  assert(filterContent.includes('Newest first'), 'SearchFilters should support Newest first option');
+  assert(filterContent.includes('Relevance'), 'SearchFilters should support Relevance option');
+});
+
+// Test 14: Temporal intent detection, newest sorting, and freshness notice in route.ts
+test('route.ts detects temporal intent, defaults to newest-first, and returns freshness notice when needed', () => {
+  const routeContent = fs.readFileSync(path.join(__dirname, 'src/app/api/v1/search/route.ts'), 'utf-8');
+  assert(routeContent.includes('detectTemporalIntent'), 'Should implement detectTemporalIntent');
+  assert(routeContent.includes('शेহতীয়া') || routeContent.includes('\\u09b6\\u09c7\\u09b9\\u09a4\\u09c0\\u09af\\u09bc\\u09be') || routeContent.includes('খবৰ'), 'Should detect Assamese temporal keywords');
+  assert(routeContent.includes('sort === "newest"'), 'Should implement newest-first sorting logic');
+  assert(routeContent.includes('freshness_notice'), 'Should generate freshness notice when fresh articles are unavailable');
+});
+
 console.log('='.repeat(70));
 console.log(`Frontend Test Results: ${passed} passed, ${failed} failed.`);
 console.log('='.repeat(70));
 
 if (failed > 0) process.exit(1);
+

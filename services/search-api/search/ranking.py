@@ -9,7 +9,7 @@ Applies:
 - Domain diversity / deduplication penalty to avoid single-domain dominance
 """
 
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from datetime import datetime, timezone
 import math
 import re
@@ -36,6 +36,8 @@ class RankingEngine:
         query_terms: List[str],
         normalized_query: str,
         query_lang: str,
+        is_news_query: bool = False,
+        is_time_sensitive: bool = False,
     ) -> float:
         """Calculate relevance score for a document."""
         title_lower = doc.get("title", "").lower()
@@ -108,8 +110,22 @@ class RankingEngine:
         if doc.get("is_authoritative", False):
             score *= self.authoritative_boost
 
+        # News intent adjustment: deprioritize static encyclopedias when user searches for news/latest
+        is_news = (
+            is_news_query
+            or is_time_sensitive
+            or doc.get("_is_news_intent", False)
+            or doc.get("_is_time_sensitive", False)
+        )
+        domain = doc.get("source_domain", "").lower()
+        if is_news:
+            if "wikipedia.org" in domain:
+                score *= 0.35  # Suppress generic encyclopedia definitions from hijacking breaking news
+            elif doc.get("is_news", False):
+                score *= 1.8   # Boost genuine news articles and announcements
+
         # Freshness score if publication date is available
-        pub_date = doc.get("published_date")
+        pub_date = doc.get("published_at") or doc.get("published_date")
         if pub_date:
             try:
                 if isinstance(pub_date, str):
@@ -117,11 +133,14 @@ class RankingEngine:
                 else:
                     pub_dt = pub_date
 
+                if pub_dt.tzinfo is None:
+                    pub_dt = pub_dt.replace(tzinfo=timezone.utc)
+
                 now = datetime.now(timezone.utc)
                 age_days = (now - pub_dt).days
                 if age_days >= 0:
-                    freshness = math.exp(-age_days / 365.0)  # 1-year exponential decay
-                    score += freshness * 1.5
+                    freshness = math.exp(-age_days / 180.0)  # exponential freshness decay
+                    score += freshness * (3.0 if is_news else 1.5)
             except Exception:
                 pass
 
@@ -134,38 +153,100 @@ class RankingEngine:
         normalized_query: str,
         query_lang: str,
         max_results: int = 10,
+        sort: str = "newest",
+        sort_by: Optional[str] = None,
+        is_time_sensitive: bool = False,
+        is_news_intent: bool = False,
     ) -> List[Dict[str, Any]]:
         """
-        Scores all candidates and applies domain diversity suppression
-        to prevent any single domain from monopolizing top search spots.
+        Scores all candidates and sorts them by 'newest' (descending verified publication time,
+        with undated items after dated items) or 'relevance' (multi-signal score with domain diversity).
+        Enforces relevance filtering so completely irrelevant pages are never returned.
         """
+        effective_sort = sort_by or sort or "newest"
         scored_docs = []
         for doc in documents:
-            s = self.score_document(doc, query_terms, normalized_query, query_lang)
-            scored_doc = dict(doc)
-            scored_doc["score"] = s
-            scored_docs.append(scored_doc)
+            doc_copy = dict(doc)
+            doc_copy["_is_time_sensitive"] = is_time_sensitive
+            doc_copy["_is_news_intent"] = is_news_intent
+            s = self.score_document(
+                doc_copy,
+                query_terms,
+                normalized_query,
+                query_lang,
+                is_news_query=is_news_intent,
+                is_time_sensitive=is_time_sensitive,
+            )
+            doc_copy["score"] = s
+            # Retain documents that meet base relevance threshold
+            if s > 0.05:
+                scored_docs.append(doc_copy)
 
-        # Sort primarily by initial score descending
+        if not scored_docs and documents:
+            # Fallback in case terms were all stop-words or empty scores
+            for doc in documents:
+                d = dict(doc)
+                d["score"] = 0.1
+                scored_docs.append(d)
+
+        # Apply domain diversity penalty for score stabilization
         scored_docs.sort(key=lambda d: d["score"], reverse=True)
-
-        # Apply domain diversity penalty
         domain_counts: Dict[str, int] = {}
-        reranked: List[Dict[str, Any]] = []
-
         for doc in scored_docs:
-            domain = doc.get("source_domain", "")
-            count = domain_counts.get(domain, 0)
-            adjusted_score = doc["score"]
-
+            dom = doc.get("source_domain", "")
+            count = domain_counts.get(dom, 0)
             if count > 0:
-                # Apply progressive penalty for repeated domain in same result set
-                adjusted_score *= (self.domain_penalty_factor ** count)
+                doc["score"] = round(doc["score"] * (self.domain_penalty_factor ** count), 4)
+            domain_counts[dom] = count + 1
 
-            doc["score"] = round(adjusted_score, 4)
-            domain_counts[domain] = count + 1
-            reranked.append(doc)
+        # Relevance filtering: prevent incidental/irrelevant pages from outranking genuinely relevant pages
+        if scored_docs:
+            max_s = max(d["score"] for d in scored_docs)
+            rel_threshold = max(0.2, max_s * 0.15) if max_s > 5.0 else 0.1
+            scored_docs = [d for d in scored_docs if d["score"] >= rel_threshold] or scored_docs
 
-        # Final sort with adjusted scores
-        reranked.sort(key=lambda d: d["score"], reverse=True)
-        return reranked[:max_results]
+        if effective_sort == "newest":
+            # Separate dated from undated
+            dated_docs = []
+            undated_docs = []
+
+            for doc in scored_docs:
+                raw_pub = doc.get("published_at") or doc.get("published_date")
+                parsed_dt = None
+                if raw_pub:
+                    try:
+                        if isinstance(raw_pub, str):
+                            parsed_dt = datetime.fromisoformat(raw_pub.replace("Z", "+00:00"))
+                        else:
+                            parsed_dt = raw_pub
+                        if parsed_dt.tzinfo is None:
+                            parsed_dt = parsed_dt.replace(tzinfo=timezone.utc)
+                        else:
+                            parsed_dt = parsed_dt.astimezone(timezone.utc)
+                    except Exception:
+                        parsed_dt = None
+
+                if parsed_dt:
+                    doc["_parsed_pub_dt"] = parsed_dt
+                    dated_docs.append(doc)
+                else:
+                    undated_docs.append(doc)
+
+            # Sort dated docs by verified publication timestamp descending (newest first)
+            # Secondary sort by relevance score descending
+            dated_docs.sort(key=lambda d: (d["_parsed_pub_dt"], d["score"]), reverse=True)
+
+            # Clean temporary sort field
+            for d in dated_docs:
+                d.pop("_parsed_pub_dt", None)
+
+            # Undated docs follow dated docs, ordered by relevance score descending
+            undated_docs.sort(key=lambda d: d["score"], reverse=True)
+
+            final_ranked = dated_docs + undated_docs
+        else:
+            # Sort by relevance score descending
+            scored_docs.sort(key=lambda d: d["score"], reverse=True)
+            final_ranked = scored_docs
+
+        return final_ranked[:max_results]

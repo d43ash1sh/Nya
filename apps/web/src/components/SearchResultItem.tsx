@@ -10,13 +10,34 @@ interface SearchResultItemProps {
 }
 
 export const SearchResultItem: React.FC<SearchResultItemProps> = ({ result, index }) => {
-  const formattedDate = result.published_date
-    ? new Date(result.published_date).toLocaleDateString(undefined, {
+  const pubDateRaw = result.published_at || result.published_date;
+  const updDateRaw = result.updated_at;
+
+  const formatDateWithTimezone = (dateStr?: string | null) => {
+    if (!dateStr) return null;
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return null;
+      const hasTime = dateStr.includes("T") || dateStr.includes(":");
+      const options: Intl.DateTimeFormatOptions = {
         year: "numeric",
         month: "short",
         day: "numeric",
-      })
-    : null;
+        timeZone: "Asia/Kolkata",
+      };
+      if (hasTime) {
+        options.hour = "2-digit";
+        options.minute = "2-digit";
+        options.timeZoneName = "short";
+      }
+      return new Intl.DateTimeFormat("en-IN", options).format(d);
+    } catch {
+      return null;
+    }
+  };
+
+  const formattedPublished = formatDateWithTimezone(pubDateRaw);
+  const formattedUpdated = formatDateWithTimezone(updDateRaw);
 
   return (
     <article
@@ -30,6 +51,12 @@ export const SearchResultItem: React.FC<SearchResultItemProps> = ({ result, inde
           <span className="font-semibold text-slate-800 dark:text-slate-300">{result.source_name || result.source_domain}</span>
         </div>
 
+        {result.is_news && (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-blue-50 dark:bg-blue-950/70 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/50">
+            News
+          </span>
+        )}
+
         {result.is_authoritative && (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50">
             <CheckCircle className="w-3 h-3" />
@@ -40,12 +67,33 @@ export const SearchResultItem: React.FC<SearchResultItemProps> = ({ result, inde
         <span className="text-slate-400 dark:text-slate-600">•</span>
         <span className="truncate max-w-[240px] text-slate-500 dark:text-slate-400">{result.display_url}</span>
 
-        {formattedDate && (
+        {formattedPublished ? (
           <>
             <span className="text-slate-400 dark:text-slate-600">•</span>
-            <span className="inline-flex items-center gap-1 text-slate-500 dark:text-slate-400">
+            <span
+              className="inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-400 font-medium"
+              title={`Verified publication date (IST / UTC: ${pubDateRaw})`}
+            >
               <Calendar className="w-3 h-3" />
-              {formattedDate}
+              <span>Published: {formattedPublished}</span>
+            </span>
+          </>
+        ) : formattedUpdated ? (
+          <>
+            <span className="text-slate-400 dark:text-slate-600">•</span>
+            <span
+              className="inline-flex items-center gap-1 text-slate-500 dark:text-slate-400"
+              title={`Last revised/updated timestamp (IST / UTC: ${updDateRaw})`}
+            >
+              <Calendar className="w-3 h-3 text-slate-400" />
+              <span>Updated: {formattedUpdated}</span>
+            </span>
+          </>
+        ) : (
+          <>
+            <span className="text-slate-400 dark:text-slate-600">•</span>
+            <span className="text-slate-400 dark:text-slate-500 text-[11px]" title="No verified publication timestamp">
+              Undated
             </span>
           </>
         )}

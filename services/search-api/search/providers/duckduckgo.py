@@ -119,6 +119,8 @@ class DuckDuckGoProvider(BaseSearchProvider):
                     if any(ord(c) >= 0x0980 and ord(c) <= 0x09FF for c in clean_title + clean_snippet):
                         doc_lang = "as"
 
+                    is_news_domain = any(nd in parsed_domain for nd in ("assamtribune", "pratidintime", "timesofindia", "thehindu", "news18", "ndtv", "eastmojo", "nenow", "sentinelassam"))
+
                     results.append({
                         "id": f"web_{doc_id}",
                         "url": clean_url,
@@ -129,6 +131,10 @@ class DuckDuckGoProvider(BaseSearchProvider):
                         "language": doc_lang,
                         "content_hash": content_hash,
                         "published_date": None,
+                        "published_at": None,
+                        "updated_at": None,
+                        "crawled_at": datetime.now(timezone.utc),
+                        "is_news": is_news_domain,
                         "source_name": source_name,
                         "source_domain": parsed_domain,
                         "is_authoritative": self._is_authoritative(parsed_domain),
