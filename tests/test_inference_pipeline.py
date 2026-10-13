@@ -178,3 +178,78 @@ async def test_organic_results_survive_ai_failure():
 
         # AI Answer is present in response structure
         assert "ai_answer" in data
+
+
+@pytest.mark.asyncio
+async def test_gemini_cascade_recovers_from_503():
+    """Tests that model cascade handles 503 high-demand error and recovers on fallback model."""
+    gateway = AIGateway()
+
+    # Create mock response: first call returns 503, second returns 200 with text
+    class MockResp503:
+        status_code = 503
+        headers = {"content-type": "application/json"}
+        text = '{"error": {"code": 503, "message": "High demand"}}'
+        def json(self):
+            return {"error": {"code": 503, "message": "High demand"}}
+
+    class MockResp200:
+        status_code = 200
+        headers = {"content-type": "application/json"}
+        def json(self):
+            return {
+                "candidates": [
+                    {
+                        "content": {
+                            "parts": [{"text": "Bihu is the chief festival of Assam [1]."}]
+                        }
+                    }
+                ]
+            }
+
+    call_count = 0
+    async def mock_post(url, json=None, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        if call_count == 1:
+            return MockResp503()
+        return MockResp200()
+
+    with patch("httpx.AsyncClient.post", side_effect=mock_post):
+        text, model = await gateway._call_gemini_with_fallback(
+            query="Bihu",
+            context="[1] Bihu is the chief festival of Assam.",
+            language="en",
+            req_id="test-503",
+        )
+        assert "Bihu" in text
+        assert call_count >= 2, "Should have cascaded to second candidate model after 503"
+
+
+def test_extractor_html_unescaping_and_metadata_date():
+    """Tests that ContentExtractor decodes HTML entities and parses publication dates."""
+    from ingestion.extraction.extractor import ContentExtractor
+    extractor = ContentExtractor()
+
+    sample_html = """
+    <html>
+      <head>
+        <title>&quot;Bihu&quot; Festival &amp; Assam &#039;2026&#039;</title>
+        <meta name="description" content="A guide to &quot;Rongali Bihu&quot; with &amp; traditions.">
+        <meta property="article:published_time" content="2026-04-14T08:00:00Z">
+      </head>
+      <body>
+        <h1>Bihu Overview</h1>
+        <p>This is a &quot;celebration&quot; of spring.</p>
+      </body>
+    </html>
+    """
+
+    res = extractor.extract(sample_html, "https://assam.gov.in/bihu")
+    assert '"Bihu" Festival & Assam \'2026\'' in res["title"]
+    assert '&quot;' not in res["title"]
+    assert '&amp;' not in res["title"]
+    assert '"Rongali Bihu" with &' in res["snippet"]
+    assert res["published_date"] is not None
+    assert res["published_date"].year == 2026
+    assert res["published_date"].month == 4

@@ -12,6 +12,7 @@ Applies:
 from typing import List, Dict, Any
 from datetime import datetime, timezone
 import math
+import re
 
 
 class RankingEngine:
@@ -45,20 +46,55 @@ class RankingEngine:
 
         # Term frequency in title and body
         for term in query_terms:
-            t = term.lower()
-            if t in title_lower:
-                # Title matches heavily boosted
+            t = term.lower().strip()
+            if not t:
+                continue
+
+            # For short terms (<= 3 chars), strictly require whole word boundaries
+            # to prevent false-positive substring matches (e.g. 'ko' inside 'Tokyo' or 'Korea')
+            word_pattern = rf"\b{re.escape(t)}\b"
+            has_word_title = bool(re.search(word_pattern, title_lower))
+
+            if has_word_title:
                 score += 3.0 * self.title_boost
-            if t in body_lower:
-                # Body match occurrences
+            elif len(t) > 3 and t in title_lower:
+                score += 1.0 * self.title_boost
+
+            if len(t) <= 3:
+                occurrences = len(re.findall(word_pattern, body_lower))
+            else:
                 occurrences = body_lower.count(t)
+
+            if occurrences > 0:
                 score += min(math.log1p(occurrences), 4.0)
 
-        # Exact phrase match boost
-        if normalized_query.lower() in title_lower:
-            score += 5.0 * self.exact_phrase_boost
-        elif normalized_query.lower() in body_lower:
-            score += 2.5 * self.exact_phrase_boost
+        # Exact phrase match boost (supports cross-script transliteration for Assamese docs)
+        norm_q = normalized_query.lower().strip()
+        candidate_phrases = [norm_q] if norm_q else []
+        if doc_lang == "as":
+            for term in query_terms:
+                t_clean = term.lower().strip()
+                if any(0x0980 <= ord(c) <= 0x09FF for c in t_clean) and t_clean not in candidate_phrases:
+                    candidate_phrases.append(t_clean)
+
+        for cp in candidate_phrases:
+            if not cp:
+                continue
+            if len(cp) <= 3:
+                phrase_pattern = rf"\b{re.escape(cp)}\b"
+                if re.search(phrase_pattern, title_lower):
+                    score += 5.0 * self.exact_phrase_boost
+                    break
+                elif re.search(phrase_pattern, body_lower):
+                    score += 2.5 * self.exact_phrase_boost
+                    break
+            else:
+                if cp in title_lower:
+                    score += 5.0 * self.exact_phrase_boost
+                    break
+                elif cp in body_lower:
+                    score += 2.5 * self.exact_phrase_boost
+                    break
 
         # Language alignment boost
         if query_lang in ("as_native", "as_romanized") and doc_lang == "as":

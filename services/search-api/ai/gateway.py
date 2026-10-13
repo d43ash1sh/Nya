@@ -23,9 +23,9 @@ logger = logging.getLogger("nya.ai")
 class AIGateway:
     # Model fallback cascade for Google Gemini in order of preference
     GEMINI_FALLBACK_MODELS = [
+        "gemini-3.5-flash",
+        "gemini-3.6-flash",
         "gemini-flash-lite-latest",
-        "gemini-3.5-flash-lite",
-        "gemini-flash-latest",
     ]
 
     def __init__(self):
@@ -271,72 +271,93 @@ class AIGateway:
 
         payload = {
             "contents": [{"parts": [{"text": prompt}]}],
-            "generationConfig": {"temperature": 0.2, "maxOutputTokens": 600},
+            "generationConfig": {"temperature": 0.2, "maxOutputTokens": 300},
         }
 
-        async with httpx.AsyncClient(timeout=settings.AI_TIMEOUT_SECONDS) as client:
-            last_status = None
-            last_err_msg = ""
-            retry_seconds = None
+        per_attempt_timeout = min(14.0, settings.AI_TIMEOUT_SECONDS)
+        last_status = None
+        last_err_msg = ""
+        retry_seconds = None
 
-            for m in models_to_try:
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent?key={settings.AI_API_KEY}"
-                logger.info(f"[{req_id}] Attempting Gemini inference with model: {m}")
+        had_rate_limit = False
 
-                try:
+        for m in models_to_try:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent?key={settings.AI_API_KEY}"
+            logger.info(f"[{req_id}] Attempting Gemini inference with model: {m}")
+
+            try:
+                async with httpx.AsyncClient(timeout=per_attempt_timeout) as client:
                     resp = await client.post(url, json=payload)
-                    last_status = resp.status_code
+                last_status = resp.status_code
 
-                    if resp.status_code == 200:
-                        data = resp.json()
-                        candidates = data.get("candidates", [])
-                        if candidates and "content" in candidates[0]:
-                            parts = candidates[0]["content"].get("parts", [])
-                            if parts and "text" in parts[0]:
-                                logger.info(f"[{req_id}] Model {m} succeeded.")
-                                return parts[0]["text"], m
+                if resp.status_code == 200:
+                    data = resp.json()
+                    candidates = data.get("candidates", [])
+                    if candidates and "content" in candidates[0]:
+                        parts = candidates[0]["content"].get("parts", [])
+                        if parts and "text" in parts[0]:
+                            logger.info(f"[{req_id}] Model {m} succeeded.")
+                            return parts[0]["text"], m
 
-                    err_json = resp.json().get("error", {}) if resp.headers.get("content-type", "").startswith("application/json") else {}
-                    last_err_msg = err_json.get("message", resp.text[:200])
+                err_json = resp.json().get("error", {}) if resp.headers.get("content-type", "").startswith("application/json") else {}
+                raw_err = err_json.get("message", resp.text[:200])
+                # Ensure no API key or token leaks into log message
+                last_err_msg = raw_err.replace(str(settings.AI_API_KEY or ""), "[REDACTED]")
 
-                    # Check for 401 / 403 Authentication failures
-                    if resp.status_code in (401, 403):
-                        raise AuthenticationException(sanitized_message=f"Gemini API key rejected ({resp.status_code})")
+                # Check for 401 / 403 Authentication failures
+                if resp.status_code in (401, 403):
+                    raise AuthenticationException(sanitized_message=f"Gemini API key rejected ({resp.status_code})")
 
-                    # Check for 429 Quota / Rate limit
-                    if resp.status_code == 429:
-                        logger.warning(f"[{req_id}] Model '{m}' returned 429 (Resource Exhausted). Trying fallback model in cascade...")
-                        # Extract retry delay if provided by Google RPC
-                        for detail in err_json.get("details", []):
-                            if detail.get("@type", "").endswith("RetryInfo"):
-                                raw_delay = detail.get("retryDelay", "60s").rstrip("s")
-                                try:
-                                    retry_seconds = int(float(raw_delay))
-                                except ValueError:
-                                    retry_seconds = 60
-                        continue
-
-                    # Check for 404 Model Not Found / Deprecated
-                    if resp.status_code == 404:
-                        logger.warning(f"[{req_id}] Model '{m}' not found or deprecated. Trying next model...")
-                        continue
-
-                except (AuthenticationException, QuotaExceededException):
-                    raise
-                except httpx.TimeoutException:
-                    raise
-                except Exception as inner_e:
-                    logger.warning(f"[{req_id}] Error attempting model {m}: {inner_e}")
+                # Check for 429 Quota / Rate limit
+                if resp.status_code == 429:
+                    had_rate_limit = True
+                    logger.warning(f"[{req_id}] Model '{m}' returned 429 (Resource Exhausted). Trying fallback model in cascade...")
+                    for detail in err_json.get("details", []):
+                        if detail.get("@type", "").endswith("RetryInfo"):
+                            raw_delay = detail.get("retryDelay", "60s").rstrip("s")
+                            try:
+                                retry_seconds = int(float(raw_delay))
+                            except ValueError:
+                                retry_seconds = 60
                     continue
 
-            # If all models in cascade returned 429
-            if last_status == 429:
-                raise QuotaExceededException(
-                    sanitized_message=f"Google Gemini daily free tier quota reached for all models: {last_err_msg[:120]}",
-                    retry_after_seconds=retry_seconds,
-                )
+                # Check for 503 Service Unavailable / Overloaded
+                if resp.status_code == 503:
+                    logger.warning(f"[{req_id}] Model '{m}' returned 503 (High Demand / Unavailable). Trying next model in cascade...")
+                    continue
 
-            raise RuntimeError(f"All Gemini models in cascade failed (Last status: {last_status}): {last_err_msg[:150]}")
+                # Check for 404 Model Not Found / Deprecated
+                if resp.status_code == 404:
+                    logger.warning(f"[{req_id}] Model '{m}' not found or deprecated. Trying next model...")
+                    continue
+
+                # Check for 500, 502, 504 server errors
+                if resp.status_code in (500, 502, 504):
+                    logger.warning(f"[{req_id}] Model '{m}' returned {resp.status_code}. Trying next model in cascade...")
+                    continue
+
+            except (AuthenticationException, QuotaExceededException):
+                raise
+            except httpx.TimeoutException:
+                logger.warning(f"[{req_id}] Model '{m}' timed out after {per_attempt_timeout}s. Cascading to next candidate model...")
+                last_status = "TIMEOUT"
+                last_err_msg = f"Timed out after {per_attempt_timeout}s"
+                continue
+            except Exception as inner_e:
+                logger.warning(f"[{req_id}] Error attempting model {m}: {inner_e}")
+                continue
+
+        # If quota limit was encountered during cascade, prioritize QuotaExceededException
+        if had_rate_limit or last_status == 429:
+            raise QuotaExceededException(
+                sanitized_message=f"Google Gemini quota reached for candidate models: {last_err_msg[:120]}",
+                retry_after_seconds=retry_seconds or 60,
+            )
+
+        if last_status == "TIMEOUT":
+            raise httpx.TimeoutException(f"All Gemini models in cascade timed out (attempt timeout: {per_attempt_timeout}s)")
+
+        raise RuntimeError(f"All Gemini models in cascade failed (Last status: {last_status}): {last_err_msg[:150]}")
 
     async def _call_openai(self, query: str, context: str, language: str, req_id: str) -> str:
         """Call OpenAI endpoint."""

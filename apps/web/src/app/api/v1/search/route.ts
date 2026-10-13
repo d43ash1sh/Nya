@@ -84,6 +84,73 @@ const REGIONAL_KNOWLEDGE_BASE: SearchResultItem[] = [
   },
 ];
 
+// Permitted Source Registry verified domain patterns
+const VERIFIED_DOMAIN_PATTERNS = [
+  /\.gov\.in$/,
+  /\.assam\.gov\.in$/,
+  /\.nic\.in$/,
+  /\.ac\.in$/,
+  /\.edu\.in$/,
+  /gauhati\.ac\.in$/,
+  /tezu\.ernet\.in$/,
+  /iitg\.ac\.in$/,
+  /sankardeva\.com$/,
+  /assamtribune\.com$/,
+];
+
+function isAuthoritativeDomain(domain: string): boolean {
+  if (!domain) return false;
+  const d = domain.toLowerCase().trim();
+  return VERIFIED_DOMAIN_PATTERNS.some((pat) => pat.test(d));
+}
+
+function cleanSnippetText(raw: string): string {
+  if (!raw) return "";
+  // 1. Remove HTML tags
+  let text = raw.replace(/<[^>]+>/g, " ");
+  // 2. Decode HTML entities (named, decimal, hex)
+  text = text
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&#039;/g, "'")
+    .replace(/&#39;/g, "'")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(parseInt(code, 10)))
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, code) => String.fromCharCode(parseInt(code, 16)));
+  // 3. Normalize whitespace without corrupting Assamese Unicode
+  return text.replace(/\s+/g, " ").trim();
+}
+
+const ROMANIZED_ASSAMESE_DICT: Record<string, string> = {
+  ko: "ক'",
+  "k'": "ক'",
+  k: "ক",
+  koi: "কৈ",
+  kua: "কোৱা",
+  ki: "কি",
+  kot: "ক'ত",
+  axom: "অসম",
+  asom: "অসম",
+  assam: "অসম",
+  bihu: "বিহু",
+  kaziranga: "কাজিৰঙা",
+  guwahati: "গুৱাহাটী",
+  gauhati: "গুৱাহাটী",
+  namaskar: "নমস্কাৰ",
+  nomoskar: "নমস্কাৰ",
+  bhal: "ভাল",
+  khobor: "খবৰ",
+  sankardev: "শংকৰদেৱ",
+  lachit: "লাচিত",
+  brahmaputra: "ব্ৰহ্মপুত্ৰ",
+  jorhat: "যোৰহাট",
+  silchar: "শিলচৰ",
+  tezpur: "তেজপুৰ",
+};
+
 function detectLanguage(query: string): LanguageType {
   const assameseRegex = /[\u0980-\u09FF]/;
   const englishRegex = /[a-zA-Z]/;
@@ -93,12 +160,12 @@ function detectLanguage(query: string): LanguageType {
   if (hasAssamese && hasEnglish) return "mixed";
   if (hasAssamese) return "as_native";
   if (hasEnglish) {
-    const lower = query.toLowerCase();
-    const assamPhonetic = [
-      "axom", "asom", "bihu", "kaziranga", "guwahati", "gauhati", "namaskar",
-      "bhal", "khobor", "sankardev", "lachit", "brahmaputra", "jorhat", "silchar"
-    ];
-    if (assamPhonetic.some((term) => lower.includes(term))) {
+    const lower = query.toLowerCase().trim();
+    if (ROMANIZED_ASSAMESE_DICT[lower]) {
+      return "as_romanized";
+    }
+    const words = lower.split(/\s+/);
+    if (words.some((w) => ROMANIZED_ASSAMESE_DICT[w])) {
       return "as_romanized";
     }
     return "en";
@@ -126,19 +193,25 @@ async function fetchWikipediaCandidates(query: string, lang: string): Promise<Se
     const data = await res.json();
     const items = data.query?.search || [];
 
-    return items.map((item: any) => ({
-      id: `wiki-${item.pageid}`,
-      title: item.title,
-      url: `https://${wikiLang}.wikipedia.org/wiki/${encodeURIComponent(item.title.replace(/ /g, "_"))}`,
-      display_url: `${wikiLang}.wikipedia.org › wiki › ${item.title.replace(/ /g, "_")}`,
-      snippet: item.snippet ? item.snippet.replace(/<[^>]+>/g, "") : "",
-      language: wikiLang === "as" ? "as" : "en",
-      published_date: new Date().toISOString().split("T")[0],
-      score: 0.88,
-      source_name: wikiLang === "as" ? "অসমীয়া ৱিকিপিডিয়া (Wikipedia)" : "Wikipedia, the free encyclopedia",
-      source_domain: `${wikiLang}.wikipedia.org`,
-      is_authoritative: true,
-    }));
+    return items.map((item: any) => {
+      const cleanTitle = cleanSnippetText(item.title);
+      const cleanSnippet = cleanSnippetText(item.snippet || "");
+      const pubDate = item.timestamp ? item.timestamp.split("T")[0] : undefined;
+
+      return {
+        id: `wiki-${wikiLang}-${item.pageid}`,
+        title: cleanTitle,
+        url: `https://${wikiLang}.wikipedia.org/wiki/${encodeURIComponent(item.title.replace(/ /g, "_"))}`,
+        display_url: `${wikiLang}.wikipedia.org › wiki › ${item.title.replace(/ /g, "_")}`,
+        snippet: cleanSnippet,
+        language: wikiLang === "as" ? "as" : "en",
+        published_date: pubDate,
+        score: 0.88,
+        source_name: wikiLang === "as" ? "অসমীয়া ৱিকিপিডিয়া (Wikipedia)" : "Wikipedia, the free encyclopedia",
+        source_domain: `${wikiLang}.wikipedia.org`,
+        is_authoritative: false,
+      };
+    });
   } catch {
     return [];
   }
@@ -159,18 +232,22 @@ async function fetchDuckDuckGoCandidates(query: string): Promise<SearchResultIte
 
     if (data.AbstractText && data.AbstractURL) {
       try {
-        const domain = new URL(data.AbstractURL).hostname;
+        const domain = new URL(data.AbstractURL).hostname.toLowerCase();
+        const cleanTitle = cleanSnippetText(data.Heading || query);
+        const cleanSnippet = cleanSnippetText(data.AbstractText);
+
         results.push({
           id: `ddg-abstract-${data.Heading || "main"}`,
-          title: data.Heading || query,
+          title: cleanTitle,
           url: data.AbstractURL,
           display_url: `${domain} › ${data.Heading || "info"}`,
-          snippet: data.AbstractText,
+          snippet: cleanSnippet,
           language: "en",
+          published_date: undefined,
           score: 0.90,
           source_name: data.AbstractSource || domain,
           source_domain: domain,
-          is_authoritative: true,
+          is_authoritative: isAuthoritativeDomain(domain),
         });
       } catch {}
     }
@@ -179,18 +256,23 @@ async function fetchDuckDuckGoCandidates(query: string): Promise<SearchResultIte
       for (const topic of data.RelatedTopics.slice(0, 4)) {
         if (topic.Text && topic.FirstURL) {
           try {
-            const domain = new URL(topic.FirstURL).hostname;
+            const domain = new URL(topic.FirstURL).hostname.toLowerCase();
+            const rawTitle = topic.Text.split(" - ")[0] || topic.Text.slice(0, 60);
+            const cleanTitle = cleanSnippetText(rawTitle);
+            const cleanSnippet = cleanSnippetText(topic.Text);
+
             results.push({
               id: `ddg-related-${crypto.createHash("md5").update(topic.FirstURL).digest("hex").slice(0, 8)}`,
-              title: topic.Text.split(" - ")[0] || topic.Text.slice(0, 60),
+              title: cleanTitle,
               url: topic.FirstURL,
               display_url: `${domain} › info`,
-              snippet: topic.Text,
+              snippet: cleanSnippet,
               language: "en",
+              published_date: undefined,
               score: 0.82,
               source_name: domain,
               source_domain: domain,
-              is_authoritative: false,
+              is_authoritative: isAuthoritativeDomain(domain),
             });
           } catch {}
         }
@@ -225,7 +307,16 @@ async function generateGroundedAIAnswer(
 
   const startTime = Date.now();
   const requestId = "nya-" + crypto.randomBytes(4).toString("hex");
-  const modelName = process.env.AI_MODEL_NAME || "gemini-flash-lite-latest";
+
+  // Multi-model cascade fallback: try primary model first, cascade on 503/429/404/timeouts
+  const candidateModels = Array.from(
+    new Set([
+      process.env.AI_MODEL_NAME || "gemini-3.5-flash",
+      "gemini-3.5-flash",
+      "gemini-3.6-flash",
+      "gemini-flash-lite-latest",
+    ])
+  );
 
   const citations: CitationItem[] = evidenceDocs.map((doc, idx) => ({
     citation_index: idx + 1,
@@ -234,13 +325,13 @@ async function generateGroundedAIAnswer(
     url: doc.url,
     source_name: doc.source_name,
     source_domain: doc.source_domain,
-    snippet: doc.snippet,
+    snippet: cleanSnippetText(doc.snippet),
   }));
 
   const evidenceText = evidenceDocs
     .map(
       (doc, idx) =>
-        `[${idx + 1}] Title: ${doc.title}\nDomain: ${doc.source_domain}\nContent: ${doc.snippet}`
+        `[${idx + 1}] Title: ${cleanSnippetText(doc.title)}\nDomain: ${doc.source_domain}\nContent: ${cleanSnippetText(doc.snippet)}`
     )
     .join("\n\n");
 
@@ -250,104 +341,118 @@ Rules:
 2. Every factual statement MUST cite its source using bracketed numbers like [1], [2].
 3. Never fabricate information or cite indices not present in the evidence.
 4. If the query is in Assamese or about Assam, write the response in fluent Assamese (অসমীয়া) script. If in English, write in concise English.
-5. Keep the answer direct, objective, and under 3-4 sentences.`;
+5. If the query is an ambiguous short term (like 'ko'), explain its distinct meanings neutrally based on evidence.
+6. Keep the answer direct, objective, and under 2-3 sentences.`;
 
   const prompt = `Evidence Sources:\n${evidenceText}\n\nUser Query: ${query}\n\nGround-truth answer with citations:`;
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+  let lastStatus = 0;
+  let lastErrorMsg = "";
 
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 12000);
+  for (const model of candidateModels) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ role: "user", parts: [{ text: `${systemInstruction}\n\n${prompt}` }] }],
-        generationConfig: {
-          temperature: 0.2,
-          maxOutputTokens: 500,
-        },
-      }),
-      signal: controller.signal,
-    });
-    clearTimeout(timeout);
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 7500);
 
-    const durationMs = Date.now() - startTime;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ role: "user", parts: [{ text: `${systemInstruction}\n\n${prompt}` }] }],
+          generationConfig: {
+            temperature: 0.2,
+            maxOutputTokens: 300,
+          },
+        }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
 
-    if (res.status === 429) {
-      return {
-        answer: "The upstream AI model reached its request quota limit. Organic results remain available below.",
-        status: "rate_limited",
-        citations: [],
-        latency_ms: durationMs,
-        confidence: 0.0,
-        model_name: modelName,
-        request_id: requestId,
-        error_code: "RESOURCE_EXHAUSTED",
-        retry_after_seconds: 3600,
-      };
+      lastStatus = res.status;
+
+      if (res.status === 200) {
+        const data = await res.json();
+        const rawAnswerText = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+
+        if (rawAnswerText) {
+          const durationMs = Date.now() - startTime;
+
+          // Sanitize citations: remove hallucinated citation numbers outside range
+          let sanitizedAnswer = rawAnswerText;
+          const citedIndices = new Set(
+            Array.from(rawAnswerText.matchAll(/\[(\d+)\]/g)).map((m: any) => parseInt(m[1], 10))
+          );
+
+          const validIndices = new Set<number>();
+          for (const idx of Array.from(citedIndices)) {
+            if (idx >= 1 && idx <= evidenceDocs.length) {
+              validIndices.add(idx);
+            } else {
+              // Strip hallucinated bracket marker
+              sanitizedAnswer = sanitizedAnswer.replace(new RegExp(`\\[${idx}\\]`, "g"), "");
+            }
+          }
+
+          const activeCitations = citations.filter((c) => validIndices.has(c.citation_index));
+          const finalCitations = activeCitations.length > 0 ? activeCitations : citations.slice(0, 2);
+
+          return {
+            answer: sanitizedAnswer.trim(),
+            status: "grounded",
+            citations: finalCitations,
+            latency_ms: durationMs,
+            confidence: 0.95,
+            model_name: model,
+            request_id: requestId,
+            disclaimer: "AI-generated summary strictly grounded in retrieved organic sources.",
+          };
+        }
+      }
+
+      // Check errors and cascade
+      if (res.status === 429) {
+        lastErrorMsg = "RESOURCE_EXHAUSTED";
+        continue;
+      }
+
+      if (res.status === 503 || res.status === 404 || res.status >= 500) {
+        lastErrorMsg = `HTTP_${res.status}`;
+        continue;
+      }
+    } catch (err: any) {
+      lastErrorMsg = err?.name === "AbortError" ? "TIMEOUT" : "NETWORK_ERROR";
+      continue;
     }
+  }
 
-    if (!res.ok) {
-      return {
-        answer: "Inference service temporarily unavailable. Organic web results remain available.",
-        status: "provider_unavailable",
-        citations: [],
-        latency_ms: durationMs,
-        confidence: 0.0,
-        model_name: modelName,
-        request_id: requestId,
-        error_code: `HTTP_${res.status}`,
-      };
-    }
-
-    const data = await res.json();
-    const answerText = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-
-    if (!answerText) {
-      return {
-        answer: "No answer could be generated from available evidence.",
-        status: "insufficient_evidence",
-        citations: [],
-        latency_ms: durationMs,
-        confidence: 0.0,
-        model_name: modelName,
-        request_id: requestId,
-      };
-    }
-
-    // Filter citations to only those actually cited in the generated answer
-    const citedIndices = new Set(
-      Array.from(answerText.matchAll(/\[(\d+)\]/g)).map((m: any) => parseInt(m[1], 10))
-    );
-    const activeCitations = citations.filter((c) => citedIndices.has(c.citation_index));
-
+  // If all candidate models in cascade were exhausted
+  const durationMs = Date.now() - startTime;
+  if (lastStatus === 429) {
     return {
-      answer: answerText,
-      status: "grounded",
-      citations: activeCitations.length > 0 ? activeCitations : citations.slice(0, 2),
-      latency_ms: durationMs,
-      confidence: 0.95,
-      model_name: modelName,
-      request_id: requestId,
-      disclaimer: "AI-generated summary strictly grounded in retrieved organic sources.",
-    };
-  } catch (err: any) {
-    const durationMs = Date.now() - startTime;
-    const isTimeout = err?.name === "AbortError";
-    return {
-      answer: isTimeout ? "AI inference timed out." : "AI service error.",
-      status: isTimeout ? "timeout" : "provider_unavailable",
+      answer: "The upstream AI model reached its request quota limit. Organic results remain available below.",
+      status: "rate_limited",
       citations: [],
       latency_ms: durationMs,
       confidence: 0.0,
-      model_name: modelName,
+      model_name: candidateModels[0],
       request_id: requestId,
-      error_code: isTimeout ? "TIMEOUT" : "EXCEPTION",
+      error_code: "RESOURCE_EXHAUSTED",
+      retry_after_seconds: 3600,
     };
   }
+
+  return {
+    answer: "Inference service temporarily unavailable. Organic web results remain available.",
+    status: "provider_unavailable",
+    citations: [],
+    latency_ms: durationMs,
+    confidence: 0.0,
+    model_name: candidateModels[0],
+    request_id: requestId,
+    error_code: lastErrorMsg || `HTTP_${lastStatus}`,
+  };
 }
 
 export async function GET(req: NextRequest) {
@@ -381,10 +486,12 @@ export async function GET(req: NextRequest) {
 
   // 2. Local Serverless Search Pipeline
   const startTime = Date.now();
+  const lowerQ = q.toLowerCase().trim();
   const detectedLanguage = detectLanguage(q);
+  const isShortLatin = /^[a-zA-Z]{1,3}$/.test(lowerQ);
+  const transliteratedSuggestion = ROMANIZED_ASSAMESE_DICT[lowerQ] || undefined;
 
   // Match regional knowledge
-  const lowerQ = q.toLowerCase();
   const matchedRegional = REGIONAL_KNOWLEDGE_BASE.filter(
     (doc) =>
       doc.title.toLowerCase().includes(lowerQ) ||
@@ -392,22 +499,55 @@ export async function GET(req: NextRequest) {
       lowerQ.split(/\s+/).some((token) => doc.title.toLowerCase().includes(token))
   );
 
-  // Concurrently fetch external live candidates
-  const [wikiResults, ddgResults] = await Promise.all([
+  // Concurrently fetch external live candidates across languages
+  const fetchTasks: Promise<SearchResultItem[]>[] = [
     fetchWikipediaCandidates(q, detectedLanguage),
     fetchDuckDuckGoCandidates(q),
-  ]);
+  ];
 
-  // Combine and deduplicate candidates by URL
+  // If query is an ambiguous short Latin term (e.g. 'ko') or has an Assamese transliteration,
+  // query native Assamese Wikipedia for balanced multi-lingual coverage
+  if (isShortLatin || transliteratedSuggestion) {
+    const asTarget = transliteratedSuggestion || (lowerQ === "ko" ? "ক" : lowerQ);
+    fetchTasks.push(fetchWikipediaCandidates(asTarget, "as_native"));
+  }
+
+  const taskResults = await Promise.all(fetchTasks);
+  const wikiResults = taskResults[0] || [];
+  const ddgResults = taskResults[1] || [];
+  const asWikiResults = taskResults[2] || [];
+
+  // Combine and deduplicate candidates by URL with word-boundary ranking
   const seenUrls = new Set<string>();
   const combined: SearchResultItem[] = [];
 
-  for (const item of [...matchedRegional, ...wikiResults, ...ddgResults]) {
+  const wordBoundaryRegex = new RegExp(`\\b${lowerQ.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i");
+
+  for (const item of [...matchedRegional, ...asWikiResults, ...wikiResults, ...ddgResults]) {
     if (!seenUrls.has(item.url)) {
       seenUrls.add(item.url);
-      combined.push(item);
+
+      let adjustedScore = item.score;
+      if (isShortLatin) {
+        const titleHasWord = wordBoundaryRegex.test(item.title);
+        const snippetHasWord = wordBoundaryRegex.test(item.snippet);
+        if (titleHasWord) {
+          adjustedScore += 0.10;
+        } else if (!snippetHasWord && !item.language.includes("as")) {
+          // Penalize substring false-positives where 'ko' was found inside another word
+          adjustedScore -= 0.20;
+        }
+      }
+
+      combined.push({
+        ...item,
+        score: Math.round(adjustedScore * 100) / 100,
+      });
     }
   }
+
+  // Sort candidates by score descending
+  combined.sort((a, b) => b.score - a.score);
 
   const totalResults = combined.length;
   const startIndex = (page - 1) * pageSize;
@@ -417,6 +557,29 @@ export async function GET(req: NextRequest) {
   let aiAnswer: AIAnswer | undefined;
   if (enableAi && combined.length > 0) {
     aiAnswer = await generateGroundedAIAnswer(q, combined.slice(0, 4), detectedLanguage);
+  }
+
+  // Generate contextual disambiguation suggestions
+  const relatedQueries: string[] = [];
+  if (lowerQ === "ko") {
+    relatedQueries.push(
+      "ক (অসমীয়া বৰ্ণমালা)",
+      "ক' (কোৱা — অসমীয়া ক্ৰিয়া)",
+      "KO (Knockout in combat sports)",
+      "Ko (surname)"
+    );
+  } else if (transliteratedSuggestion) {
+    relatedQueries.push(
+      `${transliteratedSuggestion} (অসমীয়া লিপি)`,
+      `${q} Assam`,
+      `${q} overview`
+    );
+  } else {
+    relatedQueries.push(
+      `${q} Assam`,
+      `${q} overview`,
+      `অসমীয়া ${q}`
+    );
   }
 
   const responsePayload: SearchResponse = {
@@ -429,11 +592,7 @@ export async function GET(req: NextRequest) {
     latency_ms: Date.now() - startTime,
     results: pagedResults,
     ai_answer: aiAnswer,
-    related_queries: [
-      `${q} Assam`,
-      `${q} overview`,
-      `অসমীয়া ${q}`,
-    ],
+    related_queries: relatedQueries,
   };
 
   return NextResponse.json(responsePayload);

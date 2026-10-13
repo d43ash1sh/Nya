@@ -31,15 +31,13 @@ class DuckDuckGoProvider(BaseSearchProvider):
             r"<td\s+class=['\"]result-snippet['\"][^>]*>(.*?)</td>",
             re.DOTALL
         )
-        # Authoritative domains boost
+        # Authoritative domains strictly aligned with Permitted Source Registry
         self.authoritative_suffixes = (
-            ".gov.in", ".nic.in", ".gov", ".edu.in", ".edu", ".ac.in", ".ernet.in", ".org"
+            ".gov.in", ".assam.gov.in", ".nic.in", ".ac.in", ".edu.in", ".ernet.in"
         )
         self.authoritative_domains = {
-            "assamtribune.com", "pratidintime.com", "sentinelassam.com", "gauhati.ac.in",
-            "tezu.ernet.in", "iitg.ac.in", "assam.gov.in", "wikipedia.org", "bbc.com",
-            "thehindu.com", "timesofindia.indiatimes.com", "indianexpress.com", "ndtv.com",
-            "w3schools.com", "geeksforgeeks.org", "python.org", "mozilla.org", "github.com",
+            "assam.gov.in", "assamtribune.com", "gauhati.ac.in", "tezu.ernet.in",
+            "iitg.ac.in", "sankardeva.com", "kalakshetra.assam.gov.in", "dheassam.gov.in",
         }
 
     def _clean_url(self, raw_url: str) -> str:
@@ -130,7 +128,7 @@ class DuckDuckGoProvider(BaseSearchProvider):
                         "snippet": clean_snippet,
                         "language": doc_lang,
                         "content_hash": content_hash,
-                        "published_date": datetime.now(timezone.utc),
+                        "published_date": None,
                         "source_name": source_name,
                         "source_domain": parsed_domain,
                         "is_authoritative": self._is_authoritative(parsed_domain),

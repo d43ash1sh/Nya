@@ -44,7 +44,7 @@ class Settings(BaseSettings):
 
     # Grounded AI Provider Configuration
     AI_PROVIDER: str = "gemini"  # "gemini", "openai", "ollama", "mock"
-    AI_MODEL_NAME: str = "gemini-flash-lite-latest"
+    AI_MODEL_NAME: str = "gemini-3.5-flash"
     AI_API_KEY: Optional[str] = None
     AI_MONTHLY_BUDGET_USD: float = 10.0
     AI_MONTHLY_USAGE_USD: float = 0.0

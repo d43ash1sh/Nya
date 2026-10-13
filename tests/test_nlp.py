@@ -73,3 +73,17 @@ def test_query_processor_flow():
     assert processed.transliteration_suggestion is not None
     assert "অসম" in processed.transliteration_suggestion
     assert "অসম" in processed.search_terms
+
+
+def test_transliteration_ko():
+    engine = AssameseTransliterationEngine()
+    assert engine.transliterate_word("ko") == "ক'"
+    assert engine.transliterate_word("k") == "ক"
+
+
+def test_ambiguous_query_detection():
+    detector = ScriptDetector()
+    assert detector.is_ambiguous_query("ko") is True
+    assert detector.is_ambiguous_query("ki") is True
+    assert detector.is_ambiguous_query("kaziranga") is False
+    assert detector.is_ambiguous_query("বিহু") is False

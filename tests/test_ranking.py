@@ -56,3 +56,30 @@ def test_domain_diversity_suppression():
     # alternative site should rise ahead of repeated dominant site results
     domains = [d["source_domain"] for d in reranked]
     assert "alternativesite.org" in domains[:3]
+
+
+def test_ranking_short_query_word_boundary():
+    """Ensure short terms like 'ko' do NOT match inside words like 'Tokyo' or 'Korea'."""
+    ranker = RankingEngine()
+    terms = ["ko"]
+    normalized_q = "ko"
+
+    doc_substring_false_positive = {
+        "title": "Tokyo Travel Guide & Tourism",
+        "body_text": "Explore Tokyo city districts and culture.",
+        "language": "en",
+        "source_domain": "travel.org",
+    }
+    doc_exact_word_match = {
+        "title": "Understanding KO in Boxing",
+        "body_text": "A knockout (KO) occurs when a fighter cannot continue.",
+        "language": "en",
+        "source_domain": "boxing.org",
+    }
+
+    score_fp = ranker.score_document(doc_substring_false_positive, terms, normalized_q, "en")
+    score_exact = ranker.score_document(doc_exact_word_match, terms, normalized_q, "en")
+
+    assert score_fp == 0.0, "Substring 'ko' inside 'Tokyo' must not receive false positive points"
+    assert score_exact > 0.0, "Exact word 'KO' should receive points"
+    assert score_exact > score_fp

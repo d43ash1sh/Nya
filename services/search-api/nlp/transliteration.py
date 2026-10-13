@@ -38,6 +38,13 @@ ROMANIZED_DICTIONARY: Dict[str, str] = {
     "kenekoi": "কেনেকৈ",
     "keneke": "কেনেকৈ",
     "kot": "ক'ত",
+    "ko": "ক'",
+    "k'": "ক'",
+    "k": "ক",
+    "koi": "কৈ",
+    "kua": "কোৱা",
+    "kora": "কৰা",
+    "kori": "কৰি",
     "etiya": "এতিয়া",
     "aji": "আজি",
     "kali": "কালি",
@@ -193,6 +200,10 @@ class AssameseTransliterationEngine:
         if lower in self.dictionary:
             native = self.dictionary[lower]
             expansions.append(native)
+            if "'" in native:
+                base_char = native.replace("'", "")
+                if base_char and base_char not in expansions:
+                    expansions.append(base_char)
             # Find sibling romanizations
             for k, v in self.dictionary.items():
                 if v == native and k != lower:

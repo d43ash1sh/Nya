@@ -62,6 +62,10 @@ class RetrievalEngine:
         if processed_query.transliteration_suggestion and processed_query.transliteration_suggestion != normalized_q:
             web_queries.append(processed_query.transliteration_suggestion)
 
+        for term in processed_query.search_terms:
+            if any(0x0980 <= ord(c) <= 0x09FF for c in term) and term not in web_queries:
+                web_queries.append(term)
+
         tasks = [
             self.wiki_provider.search(
                 query=web_queries[0],
@@ -77,11 +81,11 @@ class RetrievalEngine:
             ),
         ]
 
-        # If there's an alternative transliterated query in Assamese, search Wikipedia for it too
-        if len(web_queries) > 1:
+        # Query native Assamese Wikipedia for all transliterated expansions
+        for alt_q in web_queries[1:]:
             tasks.append(
                 self.wiki_provider.search(
-                    query=web_queries[1],
+                    query=alt_q,
                     detected_language="as_native",
                     page=1,
                     page_size=5,

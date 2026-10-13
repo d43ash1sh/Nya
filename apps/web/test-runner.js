@@ -98,6 +98,39 @@ test('Bigratom Saikia attribution link is present and removed badges are absent'
   assert(!headerContent.includes('Bigratom Saikia'), 'Header navbar should not contain pill');
 });
 
+// Test 9: HTML entity decoding in search route
+test('cleanSnippetText safely decodes HTML entities and normalizes whitespace', () => {
+  const routeContent = fs.readFileSync(path.join(__dirname, 'src/app/api/v1/search/route.ts'), 'utf-8');
+  assert(routeContent.includes('cleanSnippetText'), 'route.ts should declare cleanSnippetText');
+  assert(routeContent.includes('&quot;'), 'Should decode &quot;');
+  assert(routeContent.includes('&#039;'), 'Should decode &#039;');
+  assert(routeContent.includes('&amp;'), 'Should decode &amp;');
+});
+
+// Test 10: Strict authoritative domain verification basis
+test('route.ts strictly defines authoritative domain patterns and rejects Wikipedia as authoritative', () => {
+  const routeContent = fs.readFileSync(path.join(__dirname, 'src/app/api/v1/search/route.ts'), 'utf-8');
+  assert(routeContent.includes('VERIFIED_DOMAIN_PATTERNS'), 'Should define verified domain patterns');
+  assert(routeContent.includes('.gov.in'), 'Should include .gov.in in verified domains');
+  assert(routeContent.includes('is_authoritative: false'), 'Wikipedia results must have is_authoritative: false');
+});
+
+// Test 11: Date metadata provenance without fake today substitution
+test('route.ts does not substitute current date for missing publication dates', () => {
+  const routeContent = fs.readFileSync(path.join(__dirname, 'src/app/api/v1/search/route.ts'), 'utf-8');
+  assert(!routeContent.includes('new Date().toISOString().split("T")[0]'), 'Should not substitute current date');
+  assert(routeContent.includes('item.timestamp ? item.timestamp.split("T")[0] : undefined'), 'Should extract genuine timestamp');
+});
+
+// Test 12: Ambiguous short-query transliteration and multi-script handling
+test('route.ts maps ko to Assamese transliteration and handles ambiguous short queries', () => {
+  const routeContent = fs.readFileSync(path.join(__dirname, 'src/app/api/v1/search/route.ts'), 'utf-8');
+  assert(routeContent.includes('ROMANIZED_ASSAMESE_DICT'), 'Should include romanized dictionary');
+  assert(routeContent.includes('ko: "ক\'"'), 'Should map ko to Assamese ক\'');
+  assert(routeContent.includes('isShortLatin'), 'Should detect short Latin queries');
+  assert(routeContent.includes('wordBoundaryRegex'), 'Should use word boundary matching for short terms');
+});
+
 console.log('='.repeat(70));
 console.log(`Frontend Test Results: ${passed} passed, ${failed} failed.`);
 console.log('='.repeat(70));

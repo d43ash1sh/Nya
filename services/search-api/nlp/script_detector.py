@@ -47,6 +47,18 @@ class ScriptDetector:
 
         return "en"
 
+    def is_ambiguous_query(self, query: str) -> bool:
+        """
+        Determines if a query is a short Latin term that could have multiple interpretations
+        across English and Romanized Assamese (e.g. 'ko', 'ba', 'ki').
+        """
+        cleaned = query.strip()
+        if not cleaned:
+            return False
+        if len(cleaned) <= 3 and bool(self.latin_re.search(cleaned)) and not bool(self.assamese_re.search(cleaned)):
+            return True
+        return False
+
     def analyze_query_composition(self, query: str) -> dict:
         """Detailed breakdown of script characteristics."""
         total_chars = len(query.strip())

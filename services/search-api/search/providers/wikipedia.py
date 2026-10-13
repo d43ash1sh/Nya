@@ -48,11 +48,19 @@ class WikipediaProvider(BaseSearchProvider):
         async with httpx.AsyncClient(headers=self.headers, timeout=self.timeout) as client:
             for lang in langs_to_query:
                 try:
+                    search_query = query
+                    if lang == "as" and not any(0x0980 <= ord(c) <= 0x09FF for c in query):
+                        # Transliterate Latin romanized query to Assamese script if possible
+                        from nlp.transliteration import ROMANIZED_DICTIONARY
+                        lower_q = query.lower().strip()
+                        if lower_q in ROMANIZED_DICTIONARY:
+                            search_query = ROMANIZED_DICTIONARY[lower_q]
+
                     url = f"https://{lang}.wikipedia.org/w/api.php"
                     params = {
                         "action": "query",
                         "list": "search",
-                        "srsearch": query,
+                        "srsearch": search_query,
                         "format": "json",
                         "utf8": "1",
                         "sroffset": offset,
@@ -66,9 +74,10 @@ class WikipediaProvider(BaseSearchProvider):
                     search_items = data.get("query", {}).get("search", [])
 
                     for item in search_items:
-                        title = item.get("title", "").strip()
+                        title = html.unescape(item.get("title", "")).strip()
                         raw_snippet = item.get("snippet", "")
-                        clean_snippet = html.unescape(re.sub(r"<[^>]+>", "", raw_snippet)).strip()
+                        clean_snippet = html.unescape(re.sub(r"<[^>]+>", " ", raw_snippet)).strip()
+                        clean_snippet = re.sub(r"\s+", " ", clean_snippet)
                         page_id = item.get("pageid", 0)
 
                         if not title:
@@ -76,6 +85,15 @@ class WikipediaProvider(BaseSearchProvider):
 
                         canonical_url = f"https://{lang}.wikipedia.org/wiki/{quote(title.replace(' ', '_'))}"
                         content_hash = hashlib.sha256(f"{title}:{clean_snippet}".encode("utf-8")).hexdigest()
+
+                        # Extract genuine revision timestamp if present in metadata
+                        raw_ts = item.get("timestamp")
+                        pub_date = None
+                        if raw_ts:
+                            try:
+                                pub_date = datetime.fromisoformat(raw_ts.replace("Z", "+00:00"))
+                            except Exception:
+                                pub_date = None
 
                         results.append({
                             "id": f"wiki_{lang}_{page_id}",
@@ -86,10 +104,10 @@ class WikipediaProvider(BaseSearchProvider):
                             "snippet": clean_snippet,
                             "language": lang,
                             "content_hash": content_hash,
-                            "published_date": datetime.now(timezone.utc),
+                            "published_date": pub_date,
                             "source_name": "অসমীয়া ৱিকিপিডিয়া" if lang == "as" else "Wikipedia (English)",
                             "source_domain": f"{lang}.wikipedia.org",
-                            "is_authoritative": True,
+                            "is_authoritative": False,
                         })
 
                 except Exception:
