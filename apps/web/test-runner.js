@@ -87,11 +87,13 @@ test('Next.js production build artifacts verified in .next', () => {
   assert(fs.existsSync(path.join(serverAppDir, 'index.html')) || fs.existsSync(path.join(serverAppDir, 'page.js')), 'Homepage build output should exist');
 });
 
-// Test 8: Bigratom Saikia attribution and badge cleanup
-test('Bigratom Saikia attribution link is present and removed badges are absent', () => {
+// Test 8: Bigratom Saikia and Debashish attribution and badge cleanup
+test('Bigratom Saikia and Debashish attribution link is present and removed badges are absent', () => {
   const homeContent = fs.readFileSync(path.join(__dirname, 'src/app/page.tsx'), 'utf-8');
   assert(homeContent.includes('Bigratom Saikia'), 'Homepage should contain Bigratom Saikia');
   assert(homeContent.includes('https://github.com/saikiabigratom-design'), 'Homepage should link to github profile');
+  assert(homeContent.includes('Debashish'), 'Homepage should contain Debashish');
+  assert(homeContent.includes('https://www.linkedin.com/in/debashishbordoloi/'), 'Homepage should link to Debashish linkedin');
   assert(!homeContent.includes('Guest-First & Zero Ad Profiling'), 'Guest-First badge should be removed');
   assert(!homeContent.includes('Permitted Source Registry'), 'Permitted Source Registry badge should be removed');
   const headerContent = fs.readFileSync(path.join(__dirname, 'src/components/Header.tsx'), 'utf-8');
