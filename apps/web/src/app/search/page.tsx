@@ -344,6 +344,15 @@ function SearchResultsContent() {
             >
               Bigratom Saikia
             </a>
+            <span>&</span>
+            <a
+              href="https://www.linkedin.com/in/debashishbordoloi/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-slate-900 dark:text-slate-200 hover:text-teal-600 dark:hover:text-nya-teal font-medium underline underline-offset-4 decoration-teal-500/40 hover:decoration-teal-500 transition-colors"
+            >
+              Debashish
+            </a>
           </div>
         </div>
       </footer>
@@ -372,6 +381,15 @@ export default function SearchPage() {
                   className="text-slate-900 dark:text-slate-200 hover:text-teal-600 dark:hover:text-nya-teal font-medium underline underline-offset-4 decoration-teal-500/40 hover:decoration-teal-500 transition-colors"
                 >
                   Bigratom Saikia
+                </a>
+                <span>&</span>
+                <a
+                  href="https://www.linkedin.com/in/debashishbordoloi/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-slate-900 dark:text-slate-200 hover:text-teal-600 dark:hover:text-nya-teal font-medium underline underline-offset-4 decoration-teal-500/40 hover:decoration-teal-500 transition-colors"
+                >
+                  Debashish
                 </a>
               </div>
             </div>
